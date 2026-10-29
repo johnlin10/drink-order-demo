@@ -181,6 +181,15 @@
     white-space: nowrap;
   }
 
+  .nowrap {
+    white-space: nowrap;
+  }
+
+  // 問題表格欄位多，手機上維持可讀的寬度，用橫向捲動
+  .issues {
+    min-width: 760px;
+  }
+
   .unit {
     padding-left: 0;
     list-style: none;
