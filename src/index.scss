@@ -103,7 +103,7 @@ main a:not([class]) {
         100% 1.5px;
     }
   }
-  &:active {
+  &.pressed {
     background-size:
       100% 100%,
       100% 3px;
@@ -122,6 +122,12 @@ button {
   background: none;
   border: 0;
   cursor: pointer;
+}
+
+// 觸控時不要瀏覽器預設的灰色點擊框，按下的效果由按鍵本身呈現
+a,
+button,
+label {
   -webkit-tap-highlight-color: transparent;
 }
 

@@ -42,7 +42,8 @@ $press-shadow: inset 0 2px 4px rgba(15, 22, 40, 0.2);
     }
   }
 
-  &:active:not(:disabled) {
+  // .pressed 由 utils/press.ts 依 pointer 事件加上（觸控時 :active 的時機不穩）
+  &.pressed:not(:disabled) {
     transform: translateY($depth);
     box-shadow:
       0 0 0 $edge,

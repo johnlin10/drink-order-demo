@@ -50,7 +50,7 @@
       }
     }
 
-    &:active {
+    &.pressed {
       transform: translateY(2px);
       box-shadow: $press-shadow;
       transition-duration: 0.04s;
