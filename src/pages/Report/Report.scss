@@ -60,7 +60,7 @@
         font-size: 0.9rem;
         border: 1.5px solid var(--line-strong);
         border-radius: 8px;
-        @include key(var(--card), var(--line-strong), 3px);
+        @include key(var(--card), var(--line-strong), 2px, $pad-y: 5px);
 
         .mono {
           color: var(--accent);

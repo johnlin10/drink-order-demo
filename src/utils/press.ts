@@ -1,6 +1,8 @@
 // 按鍵「按下去」的狀態改用 pointer 事件控制，不靠 CSS 的 :active
 // 觸控時 :active 的時機不穩：短按時可能在 click 之前就先放開，
 // 開關類按鍵會先彈回來、等狀態更新後再卡下去，看起來像按了兩次
+// 用 data-pressed 屬性而不是 class：React 重設 className 時不會被洗掉，
+// 也不會讓「沒有 class 的內文連結」選擇器失效
 const PRESSABLE = 'button, a, label'
 /** 按下最少維持的時間，短按也看得到完整的按下、彈起 */
 const MIN_PRESS = 120
@@ -8,13 +10,13 @@ const MIN_PRESS = 120
 const TOUCH_DELAY = 60
 
 function hold(el: Element) {
-  el.classList.add('pressed')
+  el.setAttribute('data-pressed', '')
   return performance.now()
 }
 
 function release(el: Element, pressedAt: number) {
   const left = MIN_PRESS - (performance.now() - pressedAt)
-  setTimeout(() => el.classList.remove('pressed'), Math.max(0, left))
+  setTimeout(() => el.removeAttribute('data-pressed'), Math.max(0, left))
 }
 
 export function initPress() {
@@ -34,7 +36,7 @@ export function initPress() {
       window.removeEventListener('pointercancel', cancel)
       clearTimeout(timer)
       // 瀏覽器接手捲動（pointercancel）就不算按下
-      if (cancelled) return el.classList.remove('pressed')
+      if (cancelled) return el.removeAttribute('data-pressed')
       release(el, pressedAt || hold(el))
     }
     const up = end(false)

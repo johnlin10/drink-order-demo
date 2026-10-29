@@ -82,7 +82,7 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 6px 6px 9px;
+    padding: 6px;
     // 凹下去的托盤，按鍵嵌在裡面
     background: #ebe2d2;
     border: 1.5px solid var(--line-strong);
@@ -102,9 +102,10 @@
       @include key(
         var(--card),
         var(--line-strong),
-        3px,
+        2px,
         '.on',
-        var(--accent-soft)
+        var(--accent-soft),
+        $pad-y: 5px
       );
 
       &.on {
@@ -185,15 +186,19 @@
     border: 1.5px solid var(--line-strong);
     border-radius: 12px;
     scroll-snap-align: start;
-    @include key(var(--card), var(--line-strong), 4px, '.selected');
+    @include key(
+      var(--card),
+      var(--line-strong),
+      3px,
+      '.selected',
+      $pad-y: 10px
+    );
 
-    // 目前選的飲料：卡在按下的位置，外框換成青綠色
+    // 目前選的飲料：外框換成青綠色
     &.selected {
       border-color: var(--accent);
-      box-shadow:
-        0 1px 0 var(--accent),
-        inset 0 0 0 1.5px var(--accent),
-        $press-shadow;
+      outline: 1.5px solid var(--accent);
+      outline-offset: -3px;
     }
 
     .thumb {
@@ -218,7 +223,7 @@
   .arrow {
     position: absolute;
     // 不用 translate 置中，因為按鍵本身的浮起、按下也是靠 transform
-    top: calc(50% - 25px);
+    top: calc(50% - var(--control) / 2 - 5px);
     border-radius: 50%;
 
     &.start {
@@ -271,7 +276,8 @@
 
   .opt {
     margin: 0 5px 6px 0;
-    padding: 4px 9px;
+    // 只改左右；上下內距交給按鍵樣式，按下時鍵帽才沉得下去
+    padding-inline: 9px;
     font-size: 0.85rem;
   }
 
@@ -414,7 +420,7 @@
     font-weight: 600;
     border: 1.5px solid var(--ink);
     border-radius: 12px;
-    @include key(var(--ink), $ink-edge, 4px);
+    @include key(var(--ink), $ink-edge, 3px, $pad-y: 12px);
 
     span {
       margin-left: auto;

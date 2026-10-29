@@ -12,6 +12,8 @@
   --accent: #2fb5a5;
   --accent-soft: #d8f0eb;
   --radius: 14px;
+  // 按鈕統一高度：文字按鈕和圖示按鈕放在一起時才會對齊
+  --control: 44px;
   --font-display: 'Barlow Semi Condensed', 'Noto Sans TC', sans-serif;
   --font-mono: 'IBM Plex Mono', 'Noto Sans TC', monospace;
   color-scheme: light;
@@ -103,7 +105,7 @@ main a:not([class]) {
         100% 1.5px;
     }
   }
-  &.pressed {
+  &[data-pressed] {
     background-size:
       100% 100%,
       100% 3px;
@@ -247,14 +249,15 @@ input[type='checkbox'] {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 10px 18px;
+  min-height: var(--control);
+  padding: 0 18px;
   color: var(--paper);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-decoration: none;
   border: 1.5px solid var(--ink);
   border-radius: 10px;
-  @include key(var(--ink), $ink-edge, 4px);
+  @include key(var(--ink), $ink-edge, 3px);
 
   @media (hover: hover) {
     &:hover:not(:disabled) {
@@ -263,7 +266,8 @@ input[type='checkbox'] {
   }
 
   &.sm {
-    padding: 5px 10px;
+    min-height: 30px;
+    padding: 0 10px;
     font-size: 0.85rem;
     white-space: nowrap;
   }
@@ -284,14 +288,15 @@ input[type='checkbox'] {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 10px 18px;
+  min-height: var(--control);
+  padding: 0 18px;
 }
 
 .icon-btn {
   display: inline-grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
+  width: var(--control);
+  height: var(--control);
 }
 
 .actions {
@@ -317,7 +322,8 @@ input[type='checkbox'] {
     var(--line-strong),
     2px,
     ':has(input:checked)',
-    var(--accent-soft)
+    var(--accent-soft),
+    $pad-y: 5px
   );
 
   &:has(input:checked) {
@@ -356,10 +362,10 @@ form label {
   @include key(
     var(--card),
     var(--line-strong),
-    3px,
+    2px,
     '.active',
     var(--ink),
-    $ink-edge
+    $pad-y: 5px
   );
 
   &.active {

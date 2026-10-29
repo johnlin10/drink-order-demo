@@ -29,7 +29,8 @@
     display: grid;
     justify-items: center;
     gap: 4px;
-    padding: 10px 4px;
+    --pad-y: 10px;
+    padding: var(--pad-y) 4px;
     color: var(--muted);
     font-size: 0.72rem;
     text-decoration: none;
@@ -38,30 +39,32 @@
       transform 0.16s $ease-out,
       box-shadow 0.16s $ease-out,
       background-color 0.16s,
-      color 0.16s;
+      color 0.16s,
+      padding 0.05s;
 
     // 平常是平的；hover 時浮出一顆紙色按鍵
     @media (hover: hover) {
-      &:hover:not(.active) {
+      &:hover:not(.active):not([data-pressed]) {
         color: var(--ink);
         background: var(--card);
-        box-shadow: 0 3px 0 var(--line-strong);
-        transform: translateY(-1px);
+        box-shadow: 0 2px 0 var(--line-strong);
+        transform: translateY(-2px);
       }
     }
 
-    &.pressed {
-      transform: translateY(2px);
+    // 按下：外框不動，圖示與文字往下沉 1px，內側出現陰影
+    &[data-pressed] {
+      padding-top: calc(var(--pad-y) + $cap-travel);
+      padding-bottom: calc(var(--pad-y) - $cap-travel);
       box-shadow: $press-shadow;
+      transform: none;
       transition-duration: 0.04s;
     }
 
-    // 目前所在的頁面：深藍色、卡在按下的位置
+    // 目前所在的頁面：只用深藍色區分
     &.active {
       color: var(--paper);
       background: var(--ink);
-      box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.45);
-      transform: translateY(1px);
     }
   }
 
@@ -164,7 +167,7 @@
     padding: 8px 16px;
     border: 1.5px solid var(--line-strong);
     border-radius: 10px;
-    @include key(var(--paper), var(--line-strong), 3px);
+    @include key(var(--paper), var(--line-strong), 2px, $pad-y: 8px);
 
     b {
       display: block;
@@ -231,7 +234,8 @@ main {
       gap: 4px;
     }
     a {
-      padding: 6px 2px;
+      --pad-y: 6px;
+      padding-inline: 2px;
     }
     .credit {
       display: none;
