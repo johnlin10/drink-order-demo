@@ -158,7 +158,7 @@ function Floor() {
   const cy = BOTTOM + 14 // 杯墊中心
   const iso = `translate(${CX} ${cy}) scale(1 0.5) rotate(45)`
   return (
-    <g aria-hidden>
+    <g className="floor" aria-hidden>
       <defs>
         <pattern
           id={`${id}washi`}

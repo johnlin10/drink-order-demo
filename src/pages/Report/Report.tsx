@@ -1,7 +1,15 @@
+import {
+  type CSSProperties,
+  type ReactNode,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react'
 import { Link } from 'react-router-dom'
 import './Report.scss'
 import DrinkArt from '@/components/DrinkArt'
-import { MENU } from '@/data/menu'
+import { MENU, SHOP_NAME } from '@/data/menu'
 
 // 交作業前改這裡
 const STUDENT = { className: '（班級）', id: '（學號）', name: '（姓名）' }
@@ -314,218 +322,466 @@ const VALUE = [
   },
 ]
 
-const scrollTo = (id: string) =>
-  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
+// ---- 版面：內容拆成一塊一塊，依高度排進 A4 紙，放不下就換下一張 ----
 
-function SectionTitle({ i }: { i: number }) {
+type SectionId = (typeof SECTIONS)[number][0]
+
+type Block = { section: SectionId } & (
+  | { kind: 'node'; node: ReactNode; keep?: boolean; start?: boolean }
+  | {
+      kind: 'table'
+      /** 欄寬固定：整張表量出來的列高，拆到不同頁時才會一樣 */
+      cols: string[]
+      head: string[]
+      rows: ReactNode[][]
+      className?: string
+    }
+)
+
+/** 一張紙上的一塊；表格跨頁時只放其中幾列，表頭每頁重複 */
+type Part = { block: number; rows?: [number, number] }
+
+type Size = { h: number } | { head: number; rows: number[]; extra: number }
+
+const Pass = () => <span className="pass">通過</span>
+
+const BLOCKS: Block[] = []
+{
+  let section: SectionId = 'links'
+  // keep：標題這類不能落單在頁底，要跟下一塊一起換頁
+  const add = (node: ReactNode, keep = false, start = false) =>
+    BLOCKS.push({ kind: 'node', section, node, keep, start })
+  const table = (
+    t: Omit<Extract<Block, { kind: 'table' }>, 'kind' | 'section'>,
+  ) => BLOCKS.push({ kind: 'table', section, ...t })
+  const start = (i: number) => {
+    section = SECTIONS[i][0]
+    add(
+      <>
+        <span className="eyebrow">
+          {String(i + 1).padStart(2, '0')} / {SECTIONS[i][2]}
+        </span>
+        <h2>{SECTIONS[i][1]}</h2>
+      </>,
+      true,
+      true,
+    )
+  }
+
+  start(0)
+  add(
+    <dl className="links">
+      <dt>線上 Demo</dt>
+      <dd>
+        <a href={DEMO_URL} target="_blank" rel="noreferrer">
+          {DEMO_URL}
+        </a>
+      </dd>
+      <dt>原始碼</dt>
+      <dd>
+        <a href={REPO_URL} target="_blank" rel="noreferrer">
+          {REPO_URL}
+        </a>
+      </dd>
+    </dl>,
+  )
+  add(
+    <p className="muted">
+      本系統為課堂原型：不含真實會員、金流與後端，資料只存在使用者自己的瀏覽器中。
+    </p>,
+  )
+
+  start(1)
+  add(
+    <p className="tip">
+      建議演示方式：開兩個分頁，一個停在「店家後台」，另一個以顧客身分點餐，送出後店家端會即時出現新訂單。
+    </p>,
+  )
+  for (const [title, steps] of [
+    ['顧客端', CUSTOMER_FLOW],
+    ['店家端', STORE_FLOW],
+  ] as const) {
+    add(<h3>{title}</h3>, true)
+    add(
+      <ol className="flow">
+        {steps.map(([step, detail]) => (
+          <li key={step}>
+            <b>{step}</b>
+            <p>{detail}</p>
+          </li>
+        ))}
+      </ol>,
+    )
+  }
+
+  start(2)
+  add(
+    <div className="features">
+      {FEATURES.map(([title, detail], i) => (
+        <div key={title}>
+          <span className="mono">{String(i + 1).padStart(2, '0')}</span>
+          <b>{title}</b>
+          <p>{detail}</p>
+        </div>
+      ))}
+    </div>,
+  )
+  add(<h3>技術架構</h3>, true)
+  table({
+    cols: ['120px', 'auto'],
+    head: ['項目', '使用'],
+    rows: TECH.map(([k, v]) => [k, v]),
+  })
+
+  start(3)
+  add(
+    <p className="muted">
+      測試日期：{TEST_DATE}
+      {' ・ '}環境：macOS、Chromium 瀏覽器（桌面與 375px 手機寬度）
+    </p>,
+  )
+  add(
+    <h3>
+      自動化單元測試（Vitest）：{UNIT_TESTS.length}／{UNIT_TESTS.length} 通過
+    </h3>,
+    true,
+  )
+  add(
+    <ul className="unit">
+      {UNIT_TESTS.map((t) => (
+        <li key={t}>{t}</li>
+      ))}
+    </ul>,
+  )
+  add(
+    <h3>
+      手動功能測試：{MANUAL_TESTS.length}／{MANUAL_TESTS.length} 通過
+    </h3>,
+    true,
+  )
+  table({
+    cols: ['52px', '96px', 'auto', 'auto', '64px'],
+    head: ['編號', '測試項目', '操作步驟', '預期結果', '結果'],
+    rows: MANUAL_TESTS.map(([no, item, steps, expected]) => [
+      no,
+      item,
+      steps,
+      expected,
+      <Pass />,
+    ]),
+  })
+  add(<h3>問題與解決方式：{ISSUES.length} 項，皆已修正</h3>, true)
+  add(
+    <p className="muted">
+      開發與試用過程中發現的問題，包含使用者回饋與測試時自行發現的項目。
+    </p>,
+    true,
+  )
+  table({
+    cols: ['44px', '128px', '120px', 'auto', '80px', '64px'],
+    head: ['編號', '問題', '原因', '解決方式', '來源', '版本'],
+    rows: ISSUES.map(([no, ...rest]) => [no, ...rest]),
+    className: 'issues',
+  })
+
+  start(4)
+  for (const v of VALUE) {
+    add(<h3>{v.title}</h3>, true)
+    add(
+      <ul className="value">
+        {v.points.map((p) => (
+          <li key={p}>{p}</li>
+        ))}
+      </ul>,
+    )
+  }
+}
+
+function BlockView({
+  block,
+  rows,
+  id,
+}: {
+  block: Block
+  rows?: [number, number]
+  id?: string
+}) {
+  if (block.kind === 'node')
+    return (
+      <div className={`block ${block.start ? 'start' : ''}`} id={id}>
+        {block.node}
+      </div>
+    )
   return (
-    <span className="eyebrow">
-      {String(i + 1).padStart(2, '0')} / {SECTIONS[i][2]}
-    </span>
+    <div className="block" id={id}>
+      <table className={block.className}>
+        <colgroup>
+          {block.cols.map((w, i) => (
+            <col key={i} style={{ width: w }} />
+          ))}
+        </colgroup>
+        <thead>
+          <tr>
+            {block.head.map((h) => (
+              <th key={h}>{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {(rows ? block.rows.slice(...rows) : block.rows).map((cells, r) => (
+            <tr key={r}>
+              {cells.map((c, j) => (
+                <td key={j}>{c}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   )
 }
 
+/** 由上往下排：放不下就換頁；表格一列一列排，換頁時重複表頭 */
+function paginate(sizes: Size[], avail: number) {
+  const pages: Part[][] = [[]]
+  let used = 0
+  const newPage = () => {
+    pages.push([])
+    used = 0
+  }
+  // 這一塊至少要放得下的高度（表格是表頭加第一列）
+  const first = (s: Size | undefined) =>
+    !s ? 0 : 'h' in s ? s.h : s.extra + s.head + (s.rows[0] ?? 0)
+
+  sizes.forEach((s, i) => {
+    const block = BLOCKS[i]
+    if ('h' in s) {
+      const need =
+        s.h + (block.kind === 'node' && block.keep ? first(sizes[i + 1]) : 0)
+      if (used > 0 && used + need > avail) newPage()
+      pages[pages.length - 1].push({ block: i })
+      used += s.h
+      return
+    }
+    let r = 0
+    while (r < s.rows.length) {
+      if (used > 0 && used + s.extra + s.head + s.rows[r] > avail) newPage()
+      const from = r
+      used += s.extra + s.head + s.rows[r++]
+      while (r < s.rows.length && used + s.rows[r] <= avail) used += s.rows[r++]
+      pages[pages.length - 1].push({ block: i, rows: [from, r] })
+    }
+  })
+  return pages
+}
+
+function Sheet({
+  no,
+  total,
+  section,
+  children,
+}: {
+  no: number
+  total: number
+  section?: string
+  children: ReactNode
+}) {
+  return (
+    <article className="sheet">
+      {section && (
+        <header>
+          <span>飲料預訂系統原型</span>
+          <span>{section}</span>
+        </header>
+      )}
+      <div className="body">{children}</div>
+      <footer>
+        <span>{SHOP_NAME} · 管理資訊系統課堂作業</span>
+        <span className="mono">
+          {String(no).padStart(2, '0')} / {String(total).padStart(2, '0')}
+        </span>
+      </footer>
+    </article>
+  )
+}
+
+const NAV = [['cover', '封面', ''], ...SECTIONS] as const
+
 export default function Report() {
+  const measurer = useRef<HTMLDivElement>(null)
+  const sheets = useRef<HTMLDivElement>(null)
+  const [pages, setPages] = useState<Part[][]>([])
+  const [zoom, setZoom] = useState(1)
+  const [active, setActive] = useState('cover')
+
+  // 在看不見的紙上量每一塊的高度，再分頁；字型載入後重量一次
+  useLayoutEffect(() => {
+    const body = measurer.current
+    if (!body) return
+    const run = () => {
+      const height = (e: Element | null) =>
+        e?.getBoundingClientRect().height ?? 0
+      const sizes = [...body.children].map((el, i): Size => {
+        if (BLOCKS[i].kind === 'node') return { h: height(el) }
+        const head = height(el.querySelector('thead'))
+        const rows = [...el.querySelectorAll('tbody tr')].map(height)
+        return {
+          head,
+          rows,
+          extra: height(el) - head - rows.reduce((a, b) => a + b, 0),
+        }
+      })
+      const next = paginate(sizes, body.clientHeight)
+      setPages((prev) =>
+        JSON.stringify(prev) === JSON.stringify(next) ? prev : next,
+      )
+    }
+    run()
+    document.fonts.ready.then(run)
+    document.fonts.addEventListener('loadingdone', run)
+    return () => document.fonts.removeEventListener('loadingdone', run)
+  }, [])
+
+  // 紙張固定 A4 大小排版，畫面不夠寬時整張等比例縮小
+  useLayoutEffect(() => {
+    const el = sheets.current
+    const paper = measurer.current?.parentElement
+    if (!el || !paper) return
+    const observer = new ResizeObserver(() =>
+      setZoom(Math.min(1, el.clientWidth / paper.offsetWidth)),
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+
+  // 導覽標出目前看到的段落：最後一個捲過畫面上方的段落起點
+  useEffect(() => {
+    const onScroll = () => {
+      let current = 'cover'
+      for (const [id] of NAV) {
+        const top = document.getElementById(id)?.getBoundingClientRect().top
+        if (top !== undefined && top < window.innerHeight * 0.35) current = id
+      }
+      setActive(current)
+    }
+    onScroll()
+    document.addEventListener('scroll', onScroll, {
+      capture: true,
+      passive: true,
+    })
+    return () =>
+      document.removeEventListener('scroll', onScroll, { capture: true })
+  }, [pages])
+
+  const total = pages.length + 1
+  const pageOf = (id: string) =>
+    id === 'cover'
+      ? 1
+      : pages.findIndex((p) => p.some((part) => isStart(part, id))) + 2
+  const isStart = (part: Part, id: string) =>
+    !part.rows &&
+    BLOCKS[part.block].section === id &&
+    BLOCKS.findIndex((b) => b.section === id) === part.block
+
   return (
     <div className="report">
-      <header className="hero panel framed">
-        <div>
-          <span className="eyebrow">管理資訊系統 · 課堂作業</span>
-          <h1>飲料預訂系統原型</h1>
-          <p className="student">
-            {STUDENT.className}
-            {' · '}
-            {STUDENT.id}
-            {' · '}
-            {STUDENT.name}
-          </p>
-          <nav>
-            {SECTIONS.map(([id, label], i) => (
-              <button key={id} onClick={() => scrollTo(id)}>
-                <span className="mono">0{i + 1}</span> {label}
-              </button>
-            ))}
-          </nav>
-        </div>
-        <DrinkArt
-          drink={MENU.find((d) => d.id === 'boba-milk-tea') ?? MENU[0]}
-          toppings={['布丁']}
-          floor
-          className="hero-art"
-        />
-      </header>
+      <nav className="report-nav">
+        <span className="eyebrow">目錄</span>
+        {NAV.map(([id, label], i) => (
+          <button
+            key={id}
+            className={active === id ? 'on' : ''}
+            onClick={() =>
+              document
+                .getElementById(id)
+                ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+            }
+          >
+            <span className="mono">{i ? `0${i}` : '00'}</span>
+            <span>{label}</span>
+            <span className="mono page">{pages.length ? pageOf(id) : ''}</span>
+          </button>
+        ))}
+        <button className="ghost print" onClick={() => window.print()}>
+          列印／存成 PDF
+        </button>
+      </nav>
 
-      <section id="links" className="panel framed">
-        <SectionTitle i={0} />
-        <h2>系統連結</h2>
-        <dl className="links">
-          <dt>線上 Demo</dt>
-          <dd>
-            <a href={DEMO_URL} target="_blank" rel="noreferrer">
-              {DEMO_URL}
-            </a>
-          </dd>
-          <dt>原始碼</dt>
-          <dd>
-            <a href={REPO_URL} target="_blank" rel="noreferrer">
-              {REPO_URL}
-            </a>
-          </dd>
-        </dl>
-        <p className="muted">
-          本系統為課堂原型：不含真實會員、金流與後端，資料只存在使用者自己的瀏覽器中。
-        </p>
-      </section>
-
-      <section id="flow" className="panel framed">
-        <SectionTitle i={1} />
-        <h2>可演示流程</h2>
-        <p className="tip">
-          建議演示方式：開兩個分頁，一個停在「店家後台」，另一個以顧客身分點餐，送出後店家端會即時出現新訂單。
-        </p>
-        <div className="flows">
-          {(
-            [
-              ['顧客端', CUSTOMER_FLOW],
-              ['店家端', STORE_FLOW],
-            ] as const
-          ).map(([title, steps]) => (
-            <div key={title}>
-              <h3>{title}</h3>
-              <ol className="flow">
-                {steps.map(([step, detail]) => (
-                  <li key={step}>
-                    <b>{step}</b>
-                    <p>{detail}</p>
-                  </li>
-                ))}
-              </ol>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section id="features" className="panel framed">
-        <SectionTitle i={2} />
-        <h2>系統功能介紹</h2>
-        <div className="features">
-          {FEATURES.map(([title, detail], i) => (
-            <div key={title}>
-              <span className="mono">{String(i + 1).padStart(2, '0')}</span>
-              <b>{title}</b>
-              <p>{detail}</p>
-            </div>
-          ))}
-        </div>
-        <h3>技術架構</h3>
-        <table>
-          <tbody>
-            {TECH.map(([k, v]) => (
-              <tr key={k}>
-                <th>{k}</th>
-                <td>{v}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </section>
-
-      <section id="tests" className="panel framed">
-        <SectionTitle i={3} />
-        <h2>測試紀錄</h2>
-        <p className="muted">
-          測試日期：{TEST_DATE}
-          {' ・ '}環境：macOS、Chromium 瀏覽器（桌面與 375px 手機寬度）
-        </p>
-        <h3>
-          自動化單元測試（Vitest）：{UNIT_TESTS.length}／{UNIT_TESTS.length}{' '}
-          通過
-        </h3>
-        <ul className="unit">
-          {UNIT_TESTS.map((t) => (
-            <li key={t}>{t}</li>
-          ))}
-        </ul>
-        <h3>
-          手動功能測試：{MANUAL_TESTS.length}／{MANUAL_TESTS.length} 通過
-        </h3>
-        <div className="scroll">
-          <table>
-            <thead>
-              <tr>
-                <th>編號</th>
-                <th>測試項目</th>
-                <th>操作步驟</th>
-                <th>預期結果</th>
-                <th>結果</th>
-              </tr>
-            </thead>
-            <tbody>
-              {MANUAL_TESTS.map(([no, item, steps, expected]) => (
-                <tr key={no}>
-                  <td>{no}</td>
-                  <td>{item}</td>
-                  <td>{steps}</td>
-                  <td>{expected}</td>
-                  <td className="pass">通過</td>
-                </tr>
+      <div
+        className="sheets"
+        ref={sheets}
+        style={{ '--zoom': zoom } as CSSProperties}
+      >
+        <Sheet no={1} total={total}>
+          <div className="cover" id="cover">
+            <span className="eyebrow">管理資訊系統 · 課堂作業</span>
+            <h1>飲料預訂系統原型</h1>
+            <p className="subtitle">{SHOP_NAME}｜線上點餐與取餐</p>
+            <DrinkArt
+              drink={MENU.find((d) => d.id === 'boba-milk-tea') ?? MENU[0]}
+              toppings={['布丁']}
+              floor
+              className="cover-art"
+            />
+            <dl className="info">
+              <dt>班級</dt>
+              <dd>{STUDENT.className}</dd>
+              <dt>學號</dt>
+              <dd>{STUDENT.id}</dd>
+              <dt>姓名</dt>
+              <dd>{STUDENT.name}</dd>
+              <dt>日期</dt>
+              <dd className="mono">{TEST_DATE}</dd>
+            </dl>
+            <ol className="toc">
+              {SECTIONS.map(([id, label]) => (
+                <li key={id}>
+                  <span>{label}</span>
+                  <i />
+                  <span className="mono">{pages.length ? pageOf(id) : ''}</span>
+                </li>
               ))}
-            </tbody>
-          </table>
-        </div>
-        <h3>問題與解決方式：{ISSUES.length} 項，皆已修正</h3>
-        <p className="muted">
-          開發與試用過程中發現的問題，包含使用者回饋與測試時自行發現的項目。
-        </p>
-        <div className="scroll">
-          <table className="issues">
-            <thead>
-              <tr>
-                <th>編號</th>
-                <th>問題</th>
-                <th>原因</th>
-                <th>解決方式</th>
-                <th>來源</th>
-                <th>版本</th>
-              </tr>
-            </thead>
-            <tbody>
-              {ISSUES.map(([no, issue, cause, fix, source, version]) => (
-                <tr key={no}>
-                  <td>{no}</td>
-                  <td>{issue}</td>
-                  <td>{cause}</td>
-                  <td>{fix}</td>
-                  <td className="nowrap">{source}</td>
-                  <td className="mono nowrap">{version}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section id="value" className="panel framed">
-        <SectionTitle i={4} />
-        <h2>商業價值說明</h2>
-        <div className="values">
-          {VALUE.map((v) => (
-            <div key={v.title}>
-              <h3>{v.title}</h3>
-              <ul>
-                {v.points.map((p) => (
-                  <li key={p}>{p}</li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
-      </section>
+            </ol>
+          </div>
+        </Sheet>
+        {pages.map((parts, p) => (
+          <Sheet
+            key={p}
+            no={p + 2}
+            total={total}
+            section={
+              SECTIONS.find(
+                ([id]) => id === BLOCKS[parts[0].block].section,
+              )?.[1]
+            }
+          >
+            {parts.map((part) => (
+              <BlockView
+                key={`${part.block}-${part.rows?.[0] ?? 0}`}
+                block={BLOCKS[part.block]}
+                rows={part.rows}
+                id={NAV.find(([id]) => isStart(part, id))?.[0]}
+              />
+            ))}
+          </Sheet>
+        ))}
+      </div>
 
       <div className="actions">
         <Link to="/" className="primary">
           開始體驗系統 →
         </Link>
+      </div>
+
+      {/* 量高度用的紙，跟真的紙同樣大小、不縮放 */}
+      <div className="measure" aria-hidden>
+        <article className="sheet">
+          <div className="body" ref={measurer}>
+            {BLOCKS.map((block, i) => (
+              <BlockView key={i} block={block} />
+            ))}
+          </div>
+        </article>
       </div>
     </div>
   )

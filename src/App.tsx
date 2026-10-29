@@ -113,7 +113,8 @@ export default function App() {
   }, [main, pathname])
 
   return (
-    <div className="shell">
+    // 作業說明是一張張報告書，不顯示頂部標題
+    <div className={`shell ${pathname === '/report' ? 'no-header' : ''}`}>
       <aside className="sidebar">
         <nav>
           {NAV.map((n) => (

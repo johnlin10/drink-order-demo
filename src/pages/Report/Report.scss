@@ -1,85 +1,273 @@
 @use '../../styles/press' as *;
 
+// 作業說明排成一張一張 A4 報告書：紙張固定 A4 大小排版，
+// 畫面不夠寬時整張等比例縮小（--zoom 由 Report.tsx 算），列印時一張就是一頁
 .report {
   display: grid;
-  // 預設 min-width: auto 會讓寬表格把整欄撐開，手機上超出畫面
-  grid-template-columns: minmax(0, 1fr);
-  gap: 16px;
-  max-width: 960px;
+  grid-template-columns: 196px minmax(0, 1fr);
+  align-items: start;
+  gap: 28px;
+  max-width: 1040px;
   margin: 0 auto;
-
-  section {
-    scroll-margin-top: 80px;
-  }
-
-  h3 {
-    margin-top: 16px;
-    font-size: 1.05rem;
-  }
 
   // 只套用內文連結，「開始體驗系統」這類按鈕保留自己的顏色
   a:not([class]) {
     color: var(--ink);
-    text-decoration-color: var(--accent);
-    text-underline-offset: 3px;
   }
 
-  .hero {
+  > .actions {
+    grid-column: 2;
+    justify-content: center;
+    margin-top: 0;
+  }
+
+  @media (max-width: 900px) {
+    grid-template-columns: minmax(0, 1fr);
+
+    > .actions {
+      grid-column: 1;
+    }
+  }
+}
+
+// 左側段落導覽：手機不顯示
+.report-nav {
+  position: sticky;
+  top: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  @media (max-width: 900px) {
+    display: none;
+  }
+
+  .eyebrow {
+    margin: 0 0 4px 2px;
+  }
+
+  button:not(.print) {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 180px;
+    grid-template-columns: 22px minmax(0, 1fr) auto;
     align-items: center;
-    gap: 16px;
-    padding: 28px 28px 20px;
-    overflow: hidden; // 插圖的地板延伸到 SVG 外，在這裡裁掉
+    gap: 8px;
+    padding-inline: 12px;
+    font-size: 0.9rem;
+    text-align: left;
+    border: 1.5px solid var(--line-strong);
+    border-radius: 8px;
+    @include key(
+      var(--card),
+      var(--line-strong),
+      2px,
+      '.on',
+      var(--ink),
+      $pad-y: 7px
+    );
 
-    // 文字疊在插圖的地板上面
-    > div {
-      position: relative;
-      z-index: 1;
+    .mono {
+      color: var(--accent);
+      font-size: 0.78rem;
+      font-weight: 600;
+    }
+    .page {
+      color: var(--muted);
+      font-weight: 400;
     }
 
-    h1 {
-      margin: 6px 0 4px;
-      font-size: 2.2rem;
-      letter-spacing: 0.2em;
-    }
+    &.on {
+      color: var(--paper);
+      border-color: var(--ink);
 
-    .student {
-      margin: 0 0 18px;
-      color: var(--ink-soft);
-      font-family: var(--font-mono);
-    }
-
-    nav {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-
-      button {
-        padding: 5px 12px;
-        font-size: 0.9rem;
-        border: 1.5px solid var(--line-strong);
-        border-radius: 8px;
-        @include key(var(--card), var(--line-strong), 2px, $pad-y: 5px);
-
-        .mono {
-          color: var(--accent);
-          font-weight: 600;
-        }
+      .page {
+        color: var(--line-strong);
       }
     }
+  }
 
-    .hero-art {
-      width: 180px;
-      height: 260px;
-      overflow: visible;
-    }
+  .print {
+    margin-top: 10px;
+    font-size: 0.9rem;
+  }
+}
+
+.sheets {
+  display: grid;
+  justify-items: center;
+  gap: 24px;
+  min-width: 0;
+}
+
+// 一張 A4 紙：版面都以紙上的實際尺寸排，再整張縮放
+.sheet {
+  position: relative;
+  width: 210mm;
+  height: 297mm;
+  padding: 22mm 19mm 20mm;
+  overflow: hidden;
+  font-size: 14px;
+  line-height: 1.75;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  box-shadow:
+    0 1px 0 var(--line),
+    0 14px 30px -14px rgba(31, 43, 71, 0.3);
+  zoom: var(--zoom, 1);
+
+  // 頁首、頁尾：放在上下留白裡
+  > header,
+  > footer {
+    position: absolute;
+    right: 19mm;
+    left: 19mm;
+    display: flex;
+    justify-content: space-between;
+    color: var(--muted);
+    font: 500 11px var(--font-mono);
+    letter-spacing: 0.12em;
+  }
+  > header {
+    top: 10mm;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--line);
+  }
+  > footer {
+    bottom: 9mm;
+    padding-top: 6px;
+    border-top: 1px solid var(--line);
+  }
+
+  > .body {
+    height: 100%;
+  }
+
+  // 每一塊自己包住上下邊距，量到的高度就是實際佔的高度
+  .block {
+    display: flow-root;
+  }
+  // 新段落和上一段拉開；在頁首時不用
+  .block.start:not(:first-child) {
+    padding-top: 26px;
   }
 
   h2 {
-    margin-top: 2px;
+    margin: 2px 0 14px;
+    font-size: 1.6rem;
+  }
+  h3 {
+    margin: 18px 0 8px;
+    font-size: 1.05rem;
+  }
+  p {
+    margin: 0 0 12px;
   }
 
+  table {
+    margin-bottom: 14px;
+    font-size: 12.5px;
+    line-height: 1.6;
+    table-layout: fixed;
+  }
+  th,
+  td {
+    padding: 7px 8px;
+  }
+}
+
+// 量高度用的紙：同樣大小、不縮放、看不見
+.measure {
+  position: fixed;
+  top: 0;
+  left: -10000px;
+  visibility: hidden;
+  pointer-events: none;
+
+  .sheet {
+    zoom: 1;
+  }
+  .body {
+    overflow: visible;
+  }
+}
+
+.cover {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+
+  h1 {
+    margin: 10px 0 6px;
+    font-size: 2.7rem;
+    letter-spacing: 0.22em;
+  }
+
+  .subtitle {
+    color: var(--ink-soft);
+    font-size: 1.05rem;
+    letter-spacing: 0.1em;
+  }
+
+  // 文字疊在插圖延伸出來的地板上面
+  > :not(.cover-art) {
+    position: relative;
+    z-index: 1;
+  }
+
+  .cover-art {
+    align-self: center;
+    width: 250px;
+    height: 330px;
+    margin: 8px 0 18px;
+    overflow: visible;
+  }
+
+  .info {
+    display: grid;
+    grid-template-columns: 56px 1fr;
+    gap: 8px 16px;
+    margin: 0 0 auto;
+
+    dt {
+      color: var(--muted);
+      letter-spacing: 0.2em;
+    }
+    dd {
+      margin: 0;
+      padding-bottom: 4px;
+      border-bottom: 1px solid var(--line);
+    }
+  }
+
+  .toc {
+    margin: 0;
+    padding: 16px 0 0;
+    list-style: none;
+    border-top: 1.5px solid var(--ink);
+    counter-reset: toc;
+
+    li {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      padding: 3px 0;
+      counter-increment: toc;
+
+      &::before {
+        color: var(--accent);
+        font: 600 0.8rem var(--font-mono);
+        content: '0' counter(toc);
+      }
+    }
+    // 目錄的點線
+    i {
+      flex: 1;
+      border-bottom: 1.5px dotted var(--line-strong);
+    }
+  }
+}
+
+.sheet {
   .links {
     display: grid;
     grid-template-columns: auto 1fr;
@@ -102,45 +290,36 @@
     border-radius: 10px;
   }
 
-  .flow li::marker {
-    color: var(--accent);
-    font-family: var(--font-mono);
-    font-weight: 600;
-  }
-
-  .flows {
-    display: grid;
-    grid-template-columns: 3fr 2fr;
-    gap: 24px;
-  }
-
   .flow {
-    margin: 0;
+    margin: 0 0 8px;
     padding-left: 22px;
 
     li {
-      margin-bottom: 12px;
+      margin-bottom: 8px;
+    }
+    li::marker {
+      color: var(--accent);
+      font-family: var(--font-mono);
+      font-weight: 600;
     }
     p {
       margin: 0;
       color: var(--muted);
-      font-size: 0.9rem;
-    }
-    a {
-      font-size: 0.85rem;
+      font-size: 0.92em;
     }
   }
 
   .features {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 4px;
 
     div {
-      padding: 12px 14px;
-      background: var(--card);
+      padding: 10px 12px;
+      background: var(--paper-2);
       border: 1.5px solid var(--line);
-      border-radius: 10px;
+      border-radius: 8px;
     }
     span {
       margin-right: 8px;
@@ -148,15 +327,13 @@
       font-weight: 600;
     }
     p {
-      margin: 4px 0 0;
+      margin: 2px 0 0;
       color: var(--muted);
-      font-size: 0.9rem;
+      font-size: 0.9em;
+      line-height: 1.6;
     }
   }
 
-  .scroll {
-    overflow-x: auto;
-  }
   // 通過：跟選項一樣的青綠色指示燈
   .pass,
   .unit li {
@@ -175,64 +352,74 @@
         0 0 5px rgba(47, 181, 165, 0.55);
     }
   }
-
   .pass {
     font-weight: 600;
     white-space: nowrap;
   }
 
-  .nowrap {
-    white-space: nowrap;
-  }
-
-  // 問題表格欄位多，手機上維持可讀的寬度，用橫向捲動
-  .issues {
-    min-width: 760px;
-  }
-
   .unit {
+    margin: 0 0 8px;
     padding-left: 0;
     list-style: none;
-    font-size: 0.9rem;
-
-    li + li {
-      margin-top: 2px;
-    }
   }
 
-  .values {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 8px 24px;
+  .value {
+    margin: 0 0 6px;
+    padding-left: 20px;
+  }
+}
 
-    ul {
-      margin: 0;
-      padding-left: 20px;
-      font-size: 0.95rem;
-    }
+// 列印：只印紙，一張一頁；用瀏覽器「存成 PDF」就是可以交的報告書
+@page {
+  size: A4;
+  margin: 0;
+}
+
+@media print {
+  body {
+    background: none;
   }
 
-  .actions {
-    justify-content: center;
+  .sidebar,
+  .minibar,
+  .masthead,
+  .report-nav,
+  .report > .actions,
+  .measure {
+    display: none !important;
   }
 
-  @media (max-width: 720px) {
-    .flows {
-      grid-template-columns: 1fr;
-    }
+  .shell,
+  .content,
+  main,
+  .report,
+  .sheets {
+    display: block;
+    height: auto;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+    mask-image: none;
+  }
 
-    .hero {
-      grid-template-columns: minmax(0, 1fr);
-      padding: 22px 18px;
+  // 地板的淡出遮罩在列印時不可靠，會變成整頁的紋理
+  .cover-art .floor {
+    display: none;
+  }
+  // 指示燈的光暈印出來會糊成一塊
+  .sheet .pass::before,
+  .sheet .unit li::before {
+    box-shadow: inset 0 0 0 1.5px var(--card);
+  }
 
-      h1 {
-        font-size: 1.7rem;
-        letter-spacing: 0.12em;
-      }
-
-      .hero-art {
-        display: none;
-      }
-    }
+  .sheet {
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    zoom: 1;
+    break-after: page;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
   }
 }

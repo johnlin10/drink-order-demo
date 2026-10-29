@@ -387,3 +387,14 @@ main {
     }
   }
 }
+
+.no-header {
+  .masthead,
+  .minibar {
+    display: none;
+  }
+
+  main {
+    padding-top: 28px;
+  }
+}
