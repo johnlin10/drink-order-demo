@@ -1,0 +1,355 @@
+:root {
+  --paper: #f3ece0;
+  --paper-2: #f9f5ed;
+  --card: #fffdf8;
+  --ink: #1f2b47;
+  --ink-soft: #4a5571;
+  --muted: #8a8070;
+  --line: #ddd2bf;
+  --line-strong: #c7b89e;
+  --grid: rgba(31, 43, 71, 0.07);
+  --accent: #2fb5a5;
+  --accent-soft: #d8f0eb;
+  --radius: 14px;
+  --font-display: 'Barlow Semi Condensed', 'Noto Sans TC', sans-serif;
+  --font-mono: 'IBM Plex Mono', 'Noto Sans TC', monospace;
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  color: var(--ink);
+  font:
+    15px/1.65 'Noto Sans TC',
+    -apple-system,
+    'PingFang TC',
+    'Microsoft JhengHei',
+    sans-serif;
+  background-color: var(--paper);
+  // 淡淡的方格紙
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 40px 40px;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0 0 12px;
+  font-family: var(--font-display);
+  line-height: 1.25;
+  letter-spacing: 0.1em;
+}
+h2 {
+  font-size: 1.45rem;
+}
+h3 {
+  font-size: 1.05rem;
+}
+
+small,
+.muted {
+  color: var(--muted);
+}
+
+.mono {
+  font-family: var(--font-mono);
+}
+
+// 小標：英文大寫加字距
+.eyebrow {
+  display: block;
+  color: var(--muted);
+  font: 500 0.78rem var(--font-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+a {
+  color: var(--ink);
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  padding: 9px 12px;
+  color: var(--ink);
+  font: inherit;
+  background: var(--card);
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+
+  &:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+    border-color: var(--ink);
+  }
+}
+
+input[type='radio'],
+input[type='checkbox'] {
+  width: auto;
+  margin: 0 6px 0 0;
+  accent-color: var(--accent);
+}
+
+// 面板：紙卡 + 內外兩層框
+.panel {
+  padding: 18px;
+  background: var(--paper-2);
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius);
+
+  &.framed {
+    outline: 1.5px solid var(--line);
+    outline-offset: 5px;
+    margin: 6px;
+  }
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+
+  h2,
+  h3 {
+    margin: 0;
+  }
+}
+
+.empty {
+  padding: 24px 0;
+  color: var(--muted);
+  text-align: center;
+}
+
+.primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 18px;
+  color: var(--paper);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-decoration: none;
+  background: var(--ink);
+  border-radius: 10px;
+
+  &:hover {
+    background: #2b3a5e;
+  }
+
+  &.sm {
+    padding: 5px 10px;
+    font-size: 0.85rem;
+    white-space: nowrap;
+  }
+}
+
+.ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 18px;
+  color: var(--ink);
+  text-decoration: none;
+  background: var(--card);
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+
+  &:hover {
+    border-color: var(--ink);
+  }
+}
+
+.icon-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  color: var(--ink);
+  background: var(--card);
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+
+  &:hover {
+    border-color: var(--ink);
+  }
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+// 單選、複選做成小方塊按鈕
+.opt {
+  display: inline-flex;
+  align-items: center;
+  margin: 0 6px 6px 0;
+  padding: 5px 12px;
+  font-size: 0.9rem;
+  background: var(--card);
+  border: 1.5px solid var(--line);
+  border-radius: 8px;
+  cursor: pointer;
+
+  &:has(input:checked) {
+    background: var(--accent-soft);
+    border-color: var(--ink);
+  }
+}
+
+fieldset {
+  margin: 0 0 12px;
+  padding: 0;
+  border: 0;
+}
+legend {
+  margin-bottom: 6px;
+  padding: 0;
+}
+
+form label {
+  display: block;
+  margin-bottom: 12px;
+  font-size: 0.92rem;
+}
+
+.chip {
+  padding: 5px 14px;
+  font: 600 0.9rem var(--font-display);
+  letter-spacing: 0.08em;
+  background: var(--card);
+  border: 1.5px solid var(--line);
+  border-radius: 8px;
+
+  &.active {
+    color: var(--paper);
+    background: var(--ink);
+    border-color: var(--ink);
+  }
+}
+
+.stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+
+  button {
+    width: 28px;
+    height: 28px;
+    background: var(--card);
+    border: 1.5px solid var(--line);
+    border-radius: 8px;
+
+    &:hover {
+      border-color: var(--ink);
+    }
+  }
+  span {
+    min-width: 1.6em;
+    text-align: center;
+  }
+}
+
+.total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 10px 0;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  letter-spacing: 0.1em;
+
+  b {
+    font: 600 1.35rem var(--font-mono);
+    letter-spacing: 0;
+  }
+}
+
+dialog {
+  width: min(460px, calc(100vw - 32px));
+  max-height: 90vh;
+  padding: 24px;
+  color: var(--ink);
+  background: var(--paper-2);
+  border: 1.5px solid var(--line);
+  border-radius: 18px;
+  outline: 1.5px solid var(--line);
+  outline-offset: 5px;
+
+  &::backdrop {
+    background: rgba(31, 43, 71, 0.4);
+  }
+}
+
+.badge {
+  display: inline-block;
+  padding: 2px 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+  border: 1.5px solid currentColor;
+  border-radius: 6px;
+
+  &.s0 {
+    color: #9a6a12;
+    background: #fbf0d6;
+  }
+  &.s1 {
+    color: #2c4a80;
+    background: #e1e9f6;
+  }
+  &.s2 {
+    color: #17786c;
+    background: var(--accent-soft);
+  }
+  &.s3 {
+    color: var(--muted);
+    background: #eee8dc;
+  }
+}
+
+table {
+  width: 100%;
+  font-size: 0.9rem;
+  border-collapse: collapse;
+}
+th,
+td {
+  padding: 10px 12px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--line);
+}
+th {
+  color: var(--ink-soft);
+  font: 600 0.82rem var(--font-display);
+  letter-spacing: 0.12em;
+  white-space: nowrap;
+  background: #f0e8da;
+}

@@ -1,0 +1,111 @@
+.my-orders {
+  display: grid;
+  gap: 14px;
+  max-width: 780px;
+
+  h2 {
+    margin-bottom: 4px;
+  }
+
+  article {
+    display: grid;
+    grid-template-columns: 84px minmax(0, 1fr);
+    gap: 16px;
+  }
+
+  .thumb {
+    width: 84px;
+    height: 120px;
+  }
+
+  .order-no {
+    font: 600 1.4rem var(--font-mono);
+  }
+
+  ul {
+    margin: 8px 0;
+    padding-left: 20px;
+  }
+
+  .meta {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.88rem;
+
+    b {
+      color: var(--ink);
+      font-family: var(--font-mono);
+      font-weight: 500;
+    }
+  }
+
+  // 進度：圓點用一條線串起來
+  .steps {
+    position: relative;
+    display: flex;
+    margin: 6px 0 10px;
+    padding: 0;
+    list-style: none;
+    counter-reset: step;
+
+    li {
+      position: relative;
+      flex: 1;
+      padding-top: 30px;
+      color: var(--muted);
+      font-size: 0.82rem;
+      text-align: center;
+
+      // 連到下一個點的線
+      &:not(:last-child)::after {
+        position: absolute;
+        top: 11px;
+        left: 50%;
+        width: 100%;
+        height: 2px;
+        content: '';
+        background: var(--line);
+      }
+
+      &::before {
+        position: absolute;
+        top: 0;
+        left: 50%;
+        z-index: 1;
+        width: 24px;
+        height: 24px;
+        color: var(--muted);
+        font: 600 0.72rem/21px var(--font-mono);
+        background: var(--card);
+        border: 1.5px solid var(--line-strong);
+        border-radius: 50%;
+        transform: translateX(-50%);
+        content: counter(step, decimal-leading-zero);
+        counter-increment: step;
+      }
+
+      &.on {
+        color: var(--ink);
+        font-weight: 600;
+
+        &::before {
+          color: var(--ink);
+          background: var(--accent-soft);
+          border: 2px solid var(--accent);
+        }
+        &:not(:last-child)::after {
+          background: var(--accent);
+        }
+      }
+    }
+  }
+
+  @media (max-width: 600px) {
+    article {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .thumb {
+      display: none;
+    }
+  }
+}

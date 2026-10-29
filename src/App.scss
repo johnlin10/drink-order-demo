@@ -1,0 +1,258 @@
+.shell {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+// 左側圖示列
+.sidebar {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100vh;
+  padding: 20px 10px;
+  background: var(--paper-2);
+  border-right: 1.5px solid var(--line);
+
+  nav {
+    display: grid;
+    gap: 8px;
+  }
+
+  a {
+    position: relative;
+    display: grid;
+    justify-items: center;
+    gap: 4px;
+    padding: 10px 4px;
+    color: var(--muted);
+    font-size: 0.72rem;
+    text-decoration: none;
+    border-radius: 10px;
+
+    &:hover {
+      color: var(--ink);
+    }
+
+    &.active {
+      color: var(--paper);
+      background: var(--ink);
+    }
+  }
+
+  .count {
+    position: absolute;
+    top: 4px;
+    right: 8px;
+    min-width: 18px;
+    padding: 0 5px;
+    color: #fff;
+    font: 600 0.7rem/18px var(--font-mono);
+    font-style: normal;
+    text-align: center;
+    background: var(--accent);
+    border-radius: 999px;
+  }
+
+  .credit {
+    display: flex;
+    gap: 2px;
+    align-self: center;
+    margin: 0;
+    color: var(--ink);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    writing-mode: vertical-rl;
+
+    small {
+      font-weight: 400;
+    }
+  }
+}
+
+.content {
+  min-width: 0;
+}
+
+// 頂部：標誌與小工具
+.masthead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px 24px;
+  padding: 22px 28px 8px;
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+
+    .mark {
+      display: grid;
+      place-items: center;
+      width: 58px;
+      height: 58px;
+      color: var(--paper);
+      background: var(--ink);
+      border-radius: 50%;
+      box-shadow:
+        0 0 0 4px var(--paper),
+        0 0 0 5.5px var(--ink);
+    }
+
+    b {
+      display: block;
+      font: 700 2rem/1.1 var(--font-display);
+      letter-spacing: 0.32em;
+    }
+
+    small {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font: 500 0.82rem var(--font-display);
+      letter-spacing: 0.28em;
+    }
+  }
+
+  .widgets {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    padding: 6px;
+    background: var(--paper-2);
+    border: 1.5px solid var(--line);
+    border-radius: 14px;
+  }
+
+  .latest {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 8px 16px;
+    background: var(--paper);
+    border: 1.5px solid var(--line);
+    border-radius: 10px;
+
+    b {
+      display: block;
+      font: 700 0.9rem var(--font-display);
+      letter-spacing: 0.08em;
+      white-space: nowrap;
+    }
+
+    .track {
+      display: block;
+      width: 130px;
+      height: 8px;
+      margin-top: 6px;
+      overflow: hidden;
+      background: var(--line);
+      border-radius: 4px;
+
+      i {
+        display: block;
+        height: 100%;
+        background: var(--accent);
+        transition: width 0.3s;
+      }
+    }
+
+    .step {
+      font: 600 1rem var(--font-mono);
+    }
+  }
+
+  .clock {
+    display: grid;
+    align-content: center;
+    padding: 0 18px;
+    font: 500 1rem/1.5 var(--font-mono);
+    letter-spacing: 0.08em;
+  }
+}
+
+main {
+  padding: 12px 28px 48px;
+}
+
+@media (max-width: 900px) {
+  .shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  // 手機：圖示列移到底部
+  .sidebar {
+    position: fixed;
+    top: auto;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 20;
+    height: auto;
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+    border-top: 1.5px solid var(--line);
+    border-right: 0;
+
+    nav {
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
+    }
+    a {
+      padding: 6px 2px;
+    }
+    .credit {
+      display: none;
+    }
+  }
+
+  .masthead {
+    padding: 16px 16px 4px;
+
+    .logo {
+      gap: 12px;
+
+      .mark {
+        width: 44px;
+        height: 44px;
+      }
+      b {
+        font-size: 1.5rem;
+      }
+      small {
+        font-size: 0.7rem;
+        letter-spacing: 0.18em;
+      }
+    }
+
+    .widgets {
+      width: 100%;
+    }
+    .latest {
+      flex: 1;
+    }
+    .latest .track {
+      width: 100%;
+    }
+    .latest > div {
+      flex: 1;
+    }
+    .clock {
+      padding: 0 10px;
+      font-size: 0.8rem;
+    }
+  }
+
+  main {
+    padding: 8px 16px 110px;
+  }
+}

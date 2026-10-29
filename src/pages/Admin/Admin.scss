@@ -1,0 +1,63 @@
+.admin {
+  display: grid;
+  // 預設 min-width: auto 會讓寬表格把整欄撐開，手機上超出畫面
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+
+  .row {
+    margin: 0;
+  }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 16px;
+
+    small {
+      display: block;
+      margin-top: 2px;
+    }
+    b {
+      font: 600 1.6rem var(--font-mono);
+    }
+  }
+
+  .ranking {
+    .bar {
+      display: grid;
+      grid-template-columns: 7.5em 1fr 4em;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 8px;
+      font-size: 0.9rem;
+
+      i {
+        height: 14px;
+        background: repeating-linear-gradient(
+          -45deg,
+          var(--accent) 0 6px,
+          #27a091 6px 12px
+        );
+        border: 1.5px solid var(--ink);
+        border-radius: 4px;
+      }
+      b {
+        font-family: var(--font-mono);
+        text-align: right;
+      }
+    }
+  }
+
+  .table {
+    padding: 0;
+    overflow-x: auto;
+
+    table {
+      border-radius: var(--radius);
+    }
+  }
+
+  td div + div {
+    margin-top: 4px;
+  }
+}
