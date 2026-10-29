@@ -1,3 +1,5 @@
+@use '../../styles/press' as *;
+
 .report {
   display: grid;
   // 預設 min-width: auto 會讓寬表格把整欄撐開，手機上超出畫面
@@ -55,13 +57,9 @@
       button {
         padding: 5px 12px;
         font-size: 0.9rem;
-        background: var(--card);
-        border: 1.5px solid var(--line);
+        border: 1.5px solid var(--line-strong);
         border-radius: 8px;
-
-        &:hover {
-          border-color: var(--ink);
-        }
+        @include key(var(--card), var(--line-strong), 3px);
 
         .mono {
           color: var(--accent);

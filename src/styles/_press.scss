@@ -1,0 +1,68 @@
+// 互動語言：可以按的東西都是「實體按鍵」
+// - 底下有一道側邊（edge），hover 時微微浮起、側邊變厚
+// - 按下時整顆沉到底、側邊消失、內側出現陰影
+// - 開關類（分類、選項、切換、菜單卡片）選取後「卡」在按下的位置，像沒彈回來的按鍵
+// 同一套動作，用深度（depth）與面色區分主要、次要、開關
+
+$ease-out: cubic-bezier(0.25, 0.8, 0.35, 1);
+$ink-edge: #0c1324;
+$press-shadow: inset 0 2px 4px rgba(15, 22, 40, 0.2);
+
+@mixin key(
+  $face,
+  $edge,
+  $depth: 3px,
+  $on: null,
+  $on-face: $face,
+  $on-edge: $edge
+) {
+  background-color: $face;
+  box-shadow:
+    0 $depth 0 $edge,
+    0 ($depth + 3) 8px -2px rgba(31, 43, 71, 0.18);
+  transition:
+    transform 0.16s $ease-out,
+    box-shadow 0.16s $ease-out,
+    background-color 0.16s,
+    border-color 0.16s,
+    color 0.16s;
+
+  $not-on: '';
+  @if $on {
+    $not-on: ':not(#{$on})';
+  }
+
+  // 只在有滑鼠的裝置浮起，手機點完不會一直停在浮起的樣子
+  @media (hover: hover) {
+    &:hover:not(:disabled)#{$not-on} {
+      transform: translateY(-1px);
+      box-shadow:
+        0 ($depth + 1) 0 $edge,
+        0 ($depth + 6) 14px -4px rgba(31, 43, 71, 0.24);
+    }
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY($depth);
+    box-shadow:
+      0 0 0 $edge,
+      $press-shadow;
+    transition-duration: 0.04s;
+  }
+
+  @if $on {
+    &#{$on} {
+      background-color: $on-face;
+      transform: translateY($depth - 1px);
+      box-shadow:
+        0 1px 0 $on-edge,
+        $press-shadow;
+    }
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+    box-shadow: 0 1px 0 $edge;
+  }
+}

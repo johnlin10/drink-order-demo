@@ -1,3 +1,5 @@
+@use './styles/press' as *;
+
 :root {
   --paper: #f3ece0;
   --paper-2: #f9f5ed;
@@ -82,14 +84,48 @@ a {
   color: var(--ink);
 }
 
+// 內文連結：青綠色細底線，hover 時像螢光筆一樣往上塗滿
+main a:not([class]) {
+  padding: 0 2px;
+  margin: 0 -2px;
+  text-decoration: none;
+  background:
+    linear-gradient(var(--accent-soft), var(--accent-soft)) no-repeat 0 100% /
+      100% 0,
+    linear-gradient(var(--accent), var(--accent)) no-repeat 0 100% / 100% 1.5px;
+  border-radius: 2px;
+  transition: background-size 0.22s $ease-out;
+
+  @media (hover: hover) {
+    &:hover {
+      background-size:
+        100% 100%,
+        100% 1.5px;
+    }
+  }
+  &:active {
+    background-size:
+      100% 100%,
+      100% 3px;
+  }
+}
+
+// 鍵盤操作時統一的焦點框
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
 button {
   font: inherit;
   color: inherit;
   background: none;
   border: 0;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
+// 輸入欄位是凹進去的
 input,
 select,
 textarea {
@@ -100,19 +136,70 @@ textarea {
   background: var(--card);
   border: 1.5px solid var(--line);
   border-radius: 10px;
+  box-shadow: inset 0 2px 3px rgba(31, 43, 71, 0.08);
+  transition:
+    border-color 0.16s,
+    box-shadow 0.16s;
+
+  @media (hover: hover) {
+    &:hover {
+      border-color: var(--line-strong);
+    }
+  }
 
   &:focus {
-    outline: 2px solid var(--accent);
-    outline-offset: 1px;
+    outline: none;
     border-color: var(--ink);
+    box-shadow:
+      inset 0 2px 3px rgba(31, 43, 71, 0.08),
+      0 0 0 3px var(--accent-soft);
   }
 }
 
+// 單選、複選：小指示燈，選到時亮起青綠色
 input[type='radio'],
 input[type='checkbox'] {
-  width: auto;
-  margin: 0 6px 0 0;
-  accent-color: var(--accent);
+  flex: none;
+  width: 15px;
+  height: 15px;
+  margin: 0 7px 0 0;
+  padding: 0;
+  background: var(--paper);
+  border: 1.5px solid var(--line-strong);
+  box-shadow: inset 0 1px 2px rgba(31, 43, 71, 0.2);
+  cursor: pointer;
+  appearance: none;
+
+  &:focus {
+    outline: none;
+    box-shadow: inset 0 1px 2px rgba(31, 43, 71, 0.2);
+  }
+
+  &:checked {
+    background-color: var(--accent);
+    border-color: var(--ink);
+  }
+}
+input[type='radio'] {
+  border-radius: 50%;
+
+  &:checked,
+  &:checked:focus {
+    box-shadow:
+      inset 0 0 0 2.5px var(--card),
+      0 0 6px rgba(47, 181, 165, 0.55);
+  }
+}
+input[type='checkbox'] {
+  border-radius: 4px;
+
+  &:checked,
+  &:checked:focus {
+    background: var(--accent)
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 6.2l2.3 2.3 4.7-5' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+      center / 11px no-repeat;
+    box-shadow: 0 0 6px rgba(47, 181, 165, 0.5);
+  }
 }
 
 // 面板：紙卡 + 內外兩層框
@@ -148,6 +235,7 @@ input[type='checkbox'] {
   text-align: center;
 }
 
+// 主要動作：深藍按鍵，側邊最深
 .primary {
   display: inline-flex;
   align-items: center;
@@ -158,11 +246,14 @@ input[type='checkbox'] {
   font-weight: 700;
   letter-spacing: 0.06em;
   text-decoration: none;
-  background: var(--ink);
+  border: 1.5px solid var(--ink);
   border-radius: 10px;
+  @include key(var(--ink), $ink-edge, 4px);
 
-  &:hover {
-    background: #2b3a5e;
+  @media (hover: hover) {
+    &:hover:not(:disabled) {
+      background-color: #26355a;
+    }
   }
 
   &.sm {
@@ -172,21 +263,22 @@ input[type='checkbox'] {
   }
 }
 
+// 次要動作與圖示按鈕：紙色按鍵
+.ghost,
+.icon-btn {
+  color: var(--ink);
+  text-decoration: none;
+  border: 1.5px solid var(--line-strong);
+  border-radius: 10px;
+  @include key(var(--card), var(--line-strong), 3px);
+}
+
 .ghost {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   padding: 10px 18px;
-  color: var(--ink);
-  text-decoration: none;
-  background: var(--card);
-  border: 1.5px solid var(--line);
-  border-radius: 10px;
-
-  &:hover {
-    border-color: var(--ink);
-  }
 }
 
 .icon-btn {
@@ -194,14 +286,6 @@ input[type='checkbox'] {
   place-items: center;
   width: 40px;
   height: 40px;
-  color: var(--ink);
-  background: var(--card);
-  border: 1.5px solid var(--line);
-  border-radius: 10px;
-
-  &:hover {
-    border-color: var(--ink);
-  }
 }
 
 .actions {
@@ -211,21 +295,32 @@ input[type='checkbox'] {
   margin-top: 14px;
 }
 
-// 單選、複選做成小方塊按鈕
+// 單選、複選：淺按鍵，選到的卡在按下的位置
 .opt {
   display: inline-flex;
   align-items: center;
-  margin: 0 6px 6px 0;
+  margin: 0 6px 8px 0;
   padding: 5px 12px;
   font-size: 0.9rem;
-  background: var(--card);
-  border: 1.5px solid var(--line);
+  border: 1.5px solid var(--line-strong);
   border-radius: 8px;
   cursor: pointer;
+  user-select: none;
+  @include key(
+    var(--card),
+    var(--line-strong),
+    2px,
+    ':has(input:checked)',
+    var(--accent-soft)
+  );
 
   &:has(input:checked) {
-    background: var(--accent-soft);
     border-color: var(--ink);
+  }
+
+  &:has(input:focus-visible) {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
   }
 }
 
@@ -245,17 +340,24 @@ form label {
   font-size: 0.92rem;
 }
 
+// 分類切換：選到的變成深藍色、卡在按下的位置
 .chip {
   padding: 5px 14px;
   font: 600 0.9rem var(--font-display);
   letter-spacing: 0.08em;
-  background: var(--card);
-  border: 1.5px solid var(--line);
+  border: 1.5px solid var(--line-strong);
   border-radius: 8px;
+  @include key(
+    var(--card),
+    var(--line-strong),
+    3px,
+    '.active',
+    var(--ink),
+    $ink-edge
+  );
 
   &.active {
     color: var(--paper);
-    background: var(--ink);
     border-color: var(--ink);
   }
 }
@@ -269,13 +371,9 @@ form label {
   button {
     width: 28px;
     height: 28px;
-    background: var(--card);
-    border: 1.5px solid var(--line);
+    border: 1.5px solid var(--line-strong);
     border-radius: 8px;
-
-    &:hover {
-      border-color: var(--ink);
-    }
+    @include key(var(--card), var(--line-strong), 2px);
   }
   span {
     min-width: 1.6em;
@@ -359,4 +457,12 @@ th {
   letter-spacing: 0.12em;
   white-space: nowrap;
   background: #f0e8da;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+  }
 }

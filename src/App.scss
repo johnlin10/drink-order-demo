@@ -1,4 +1,5 @@
 @use './styles/media' as *;
+@use './styles/press' as *;
 
 .shell {
   display: grid;
@@ -33,14 +34,34 @@
     font-size: 0.72rem;
     text-decoration: none;
     border-radius: 10px;
+    transition:
+      transform 0.16s $ease-out,
+      box-shadow 0.16s $ease-out,
+      background-color 0.16s,
+      color 0.16s;
 
-    &:hover {
-      color: var(--ink);
+    // 平常是平的；hover 時浮出一顆紙色按鍵
+    @media (hover: hover) {
+      &:hover:not(.active) {
+        color: var(--ink);
+        background: var(--card);
+        box-shadow: 0 3px 0 var(--line-strong);
+        transform: translateY(-1px);
+      }
     }
 
+    &:active {
+      transform: translateY(2px);
+      box-shadow: $press-shadow;
+      transition-duration: 0.04s;
+    }
+
+    // 目前所在的頁面：深藍色、卡在按下的位置
     &.active {
       color: var(--paper);
       background: var(--ink);
+      box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.45);
+      transform: translateY(1px);
     }
   }
 
@@ -141,9 +162,9 @@
     align-items: center;
     gap: 14px;
     padding: 8px 16px;
-    background: var(--paper);
-    border: 1.5px solid var(--line);
+    border: 1.5px solid var(--line-strong);
     border-radius: 10px;
+    @include key(var(--paper), var(--line-strong), 3px);
 
     b {
       display: block;
