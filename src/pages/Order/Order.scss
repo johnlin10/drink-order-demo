@@ -1,3 +1,5 @@
+@use '../../styles/media' as *;
+
 .order-page {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 420px;
@@ -24,17 +26,18 @@
   position: relative;
   min-height: 500px;
   padding: 18px 18px 70px;
-  background-color: rgba(249, 245, 237, 0.6);
-  background-image:
-    repeating-linear-gradient(30deg, var(--grid) 0 1px, transparent 1px 34px),
-    repeating-linear-gradient(-30deg, var(--grid) 0 1px, transparent 1px 34px);
+  overflow: hidden; // 插圖的地板會延伸到 SVG 外面，在這裡裁掉
+  // 後方的牆：上暗下亮，和前面淡出的紙面地板接在一起
+  background: linear-gradient(to bottom, #e9dfcd 0%, #f1e9db 45%, #f6f0e5 100%);
   border: 1.5px solid var(--line);
   border-radius: var(--radius);
+  box-shadow: inset 0 18px 30px -18px rgba(31, 43, 71, 0.12);
 
   // 四角的取景框
   &::before {
     position: absolute;
     inset: 12px;
+    z-index: 1;
     pointer-events: none;
     content: '';
     background:
@@ -51,6 +54,8 @@
   }
 
   .stage-meta {
+    position: relative;
+    z-index: 1;
     display: flex;
     justify-content: space-between;
     padding: 4px 14px;
@@ -65,6 +70,7 @@
     width: 100%;
     max-height: 470px;
     margin: 0 auto;
+    overflow: visible;
     font-family: 'Noto Sans TC', sans-serif;
   }
 
@@ -118,13 +124,39 @@
     gap: 6px;
   }
 
+  .scroller-wrap {
+    --fade-left: 0px;
+    --fade-right: 0px;
+    position: relative;
+
+    &.more-left {
+      --fade-left: 56px;
+    }
+    &.more-right {
+      --fade-right: 72px;
+    }
+  }
+
+  // 還有內容的那一側淡出，不會看到卡片被硬切一半
   .scroller {
     display: flex;
     gap: 12px;
-    padding: 4px 56px 8px 4px;
+    padding: 4px 4px 10px;
     overflow-x: auto;
     scroll-snap-type: x mandatory;
-    scrollbar-width: thin;
+    scroll-padding-inline: 4px;
+    scrollbar-width: none;
+    mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      #000 var(--fade-left),
+      #000 calc(100% - var(--fade-right)),
+      transparent 100%
+    );
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
   }
 
   .drink {
@@ -172,12 +204,26 @@
     }
   }
 
-  .more {
+  .arrow {
     position: absolute;
-    right: 0;
-    bottom: 40px;
+    top: calc(50% - 3px);
     border-radius: 50%;
     box-shadow: 0 2px 0 var(--line);
+    transform: translateY(-50%);
+
+    &.left {
+      left: 0;
+
+      svg {
+        transform: scaleX(-1);
+      }
+    }
+    &.right {
+      right: 0;
+    }
+    &[hidden] {
+      display: none;
+    }
   }
 }
 
@@ -338,11 +384,8 @@
     padding: 10px 6px 64px;
   }
 
-  .menu-strip .more {
+  .menu-strip .arrow {
     display: none;
-  }
-  .menu-strip .scroller {
-    padding-right: 4px;
   }
   .menu-strip .drink {
     flex-basis: 200px;
@@ -367,5 +410,46 @@
     span {
       margin-left: auto;
     }
+  }
+}
+
+// 電腦版：左半邊（預覽與菜單）固定在畫面內，右半邊（客製化與購物車）自己捲
+@media #{$desktop-app} {
+  .order-page {
+    grid-template-rows: minmax(0, 1fr);
+    align-items: stretch;
+    height: 100%;
+  }
+
+  .order-main {
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+
+  .stage {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+
+    .stage-art {
+      flex: 1;
+      min-height: 0;
+      max-height: none;
+    }
+  }
+
+  .order-side {
+    position: static;
+    min-height: 0;
+    padding: 2px 2px 12px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    mask-image: linear-gradient(
+      to bottom,
+      transparent 0,
+      #000 14px,
+      #000 calc(100% - 28px),
+      transparent 100%
+    );
   }
 }

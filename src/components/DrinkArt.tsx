@@ -1,4 +1,5 @@
 import { useId } from 'react'
+import washi from '@/assets/washi.svg'
 import { SIZE_LABEL } from '@/data/menu'
 import type { Drink, Size } from '@/types'
 
@@ -144,6 +145,82 @@ function Callout({
   )
 }
 
+/**
+ * 地板：和紙用跟杯子相同的等角視角鋪平（轉 45° 再壓扁一半，和杯墊同比例），
+ * 往遠處淡出，看起來像杯子放在一張紙面上，而不是貼在頁面背景前
+ */
+const AREA = { x: -1000, y: -400, width: 2520, height: 1400 }
+const LEAF =
+  'M0 0C12-16 42-17 58 0C42 17 12 16 0 0ZM-10 3L0 0H54M14 0l7-7M27 0l7-8M40 0l6-6M14 0l7 7M27 0l7 8M40 0l6 6'
+
+function Floor() {
+  const id = useId()
+  const cy = BOTTOM + 14 // 杯墊中心
+  const iso = `translate(${CX} ${cy}) scale(1 0.5) rotate(45)`
+  return (
+    <g aria-hidden>
+      <defs>
+        <pattern
+          id={`${id}washi`}
+          patternUnits="userSpaceOnUse"
+          width={260}
+          height={260}
+          patternTransform={iso}
+        >
+          <image href={washi} width={260} height={260} />
+          <image href={washi} width={260} height={260} />
+        </pattern>
+        {/* 茶葉直接畫在圖樣裡，比頁面背景深一點，壓扁後的形狀才看得出是一個平面 */}
+        <pattern
+          id={`${id}leaves`}
+          patternUnits="userSpaceOnUse"
+          width={220}
+          height={220}
+          patternTransform={iso}
+        >
+          <g
+            fill="none"
+            stroke={INK}
+            strokeOpacity={0.16}
+            strokeWidth={1.6}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d={LEAF} transform="translate(40 60) rotate(-28)" />
+            <path
+              d={LEAF}
+              transform="translate(150 150) rotate(38) scale(0.8)"
+            />
+            <circle cx={170} cy={40} r={2.4} />
+            <circle cx={60} cy={180} r={2} />
+          </g>
+        </pattern>
+        <radialGradient
+          id={`${id}fade`}
+          gradientUnits="userSpaceOnUse"
+          cx={CX}
+          cy={cy}
+          r={640}
+          gradientTransform={`translate(${CX} ${cy}) scale(1 0.5) translate(${-CX} ${-cy})`}
+        >
+          <stop offset="0.2" stopColor="#fff" />
+          <stop offset="1" stopColor="#fff" stopOpacity={0} />
+        </radialGradient>
+        <mask id={`${id}mask`} maskUnits="userSpaceOnUse" {...AREA}>
+          <rect {...AREA} fill={`url(#${id}fade)`} />
+        </mask>
+      </defs>
+      <g mask={`url(#${id}mask)`}>
+        <rect {...AREA} fill="#faf5ea" />
+        <rect {...AREA} fill={`url(#${id}washi)`} />
+        <rect {...AREA} fill={`url(#${id}leaves)`} />
+      </g>
+      {/* 杯子周圍打一點光 */}
+      <ellipse cx={CX} cy={cy} rx={220} ry={110} fill="#fffdf6" opacity={0.3} />
+    </g>
+  )
+}
+
 export default function DrinkArt({
   drink,
   size = 'L',
@@ -151,6 +228,7 @@ export default function DrinkArt({
   ice = '少冰',
   toppings = [],
   callouts = false,
+  floor = false,
   className,
 }: {
   drink: Drink
@@ -159,6 +237,7 @@ export default function DrinkArt({
   ice?: string
   toppings?: string[]
   callouts?: boolean
+  floor?: boolean
   className?: string
 }) {
   const clip = useId()
@@ -186,7 +265,7 @@ export default function DrinkArt({
   return (
     <svg
       className={className}
-      viewBox={callouts ? '0 -12 520 432' : '128 -6 264 410'}
+      viewBox={callouts ? '0 -12 520 432' : '128 -6 264 380'}
       role="img"
       aria-label={`${drink.name}：${SIZE_LABEL[size]}、${sugar}、${ice}`}
     >
@@ -196,27 +275,9 @@ export default function DrinkArt({
         </clipPath>
       </defs>
 
-      {/* 杯墊 */}
-      <g stroke={INK} strokeWidth={1.5} strokeLinejoin="round">
-        <path
-          d={`M${CX - 124} ${BOTTOM + 14}L${CX} ${BOTTOM + 76}L${CX} ${BOTTOM + 84}L${CX - 124} ${BOTTOM + 22}Z`}
-          fill="#e4d9c5"
-        />
-        <path
-          d={`M${CX} ${BOTTOM + 76}L${CX + 124} ${BOTTOM + 14}L${CX + 124} ${BOTTOM + 22}L${CX} ${BOTTOM + 84}Z`}
-          fill="#d3c5ab"
-        />
-        <path
-          d={`M${CX} ${BOTTOM - 48}L${CX + 124} ${BOTTOM + 14}L${CX} ${BOTTOM + 76}L${CX - 124} ${BOTTOM + 14}Z`}
-          fill="var(--paper-2)"
-        />
-        <path
-          d={`M${CX} ${BOTTOM - 30}L${CX + 88} ${BOTTOM + 14}L${CX} ${BOTTOM + 58}L${CX - 88} ${BOTTOM + 14}Z`}
-          fill="none"
-          stroke="var(--line-strong)"
-          strokeDasharray="4 5"
-        />
-      </g>
+      {floor && <Floor />}
+
+      {/* 接觸陰影 */}
       <ellipse
         cx={CX + 18}
         cy={BOTTOM + 12}

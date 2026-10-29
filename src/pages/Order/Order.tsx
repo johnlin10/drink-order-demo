@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import './Order.scss'
 import DrinkArt from '@/components/DrinkArt'
 import Icon from '@/components/Icon'
@@ -32,7 +32,24 @@ export default function Order() {
   const [added, setAdded] = useState(false)
   const [cart, setCart] = useCart()
   const strip = useRef<HTMLDivElement>(null)
+  // 菜單列左右還有沒有東西，決定哪一邊要淡出、要不要顯示箭頭
+  const [more, setMore] = useState({ left: false, right: false })
   const count = cartCount(cart)
+
+  const measure = useCallback(() => {
+    const el = strip.current
+    if (!el) return
+    setMore({
+      left: el.scrollLeft > 4,
+      right: el.scrollLeft + el.clientWidth < el.scrollWidth - 4,
+    })
+  }, [])
+
+  useEffect(() => {
+    measure()
+    window.addEventListener('resize', measure)
+    return () => window.removeEventListener('resize', measure)
+  }, [measure, category])
 
   const update = (patch: Partial<Spec>) => setSpec((s) => ({ ...s, ...patch }))
 
@@ -68,7 +85,13 @@ export default function Order() {
             </span>
             <span className="eyebrow live">● Live preview</span>
           </div>
-          <DrinkArt drink={drink} {...spec} callouts className="stage-art" />
+          <DrinkArt
+            drink={drink}
+            {...spec}
+            callouts
+            floor
+            className="stage-art"
+          />
           <div className="toolbar">
             {(['M', 'L'] as Size[]).map((s) => (
               <button
@@ -110,36 +133,47 @@ export default function Order() {
               ))}
             </div>
           </div>
-          <div className="scroller" ref={strip}>
-            {MENU.filter(
-              (d) => category === '全部' || d.category === category,
-            ).map((d) => (
+          <div
+            className={`scroller-wrap ${more.left ? 'more-left' : ''} ${more.right ? 'more-right' : ''}`}
+          >
+            <div className="scroller" ref={strip} onScroll={measure}>
+              {MENU.filter(
+                (d) => category === '全部' || d.category === category,
+              ).map((d) => (
+                <button
+                  key={d.id}
+                  className={`drink ${d.id === drink.id ? 'selected' : ''}`}
+                  onClick={() => pick(d)}
+                >
+                  <DrinkArt drink={d} className="thumb" />
+                  <span>
+                    <small className="mono">{no(d)}.</small>
+                    <b>{d.name}</b>
+                    <small className="mono">
+                      {money(d.price.M)} / {money(d.price.L)}
+                    </small>
+                  </span>
+                  <Icon name="chevron" size={18} />
+                </button>
+              ))}
+            </div>
+            {(['left', 'right'] as const).map((side) => (
               <button
-                key={d.id}
-                className={`drink ${d.id === drink.id ? 'selected' : ''}`}
-                onClick={() => pick(d)}
+                key={side}
+                className={`icon-btn arrow ${side}`}
+                aria-label={side === 'left' ? '往前看' : '看更多飲料'}
+                hidden={!more[side]}
+                onClick={() =>
+                  strip.current?.scrollBy({
+                    left: side === 'left' ? -480 : 480,
+                    behavior: 'smooth',
+                  })
+                }
               >
-                <DrinkArt drink={d} className="thumb" />
-                <span>
-                  <small className="mono">{no(d)}.</small>
-                  <b>{d.name}</b>
-                  <small className="mono">
-                    {money(d.price.M)} / {money(d.price.L)}
-                  </small>
-                </span>
                 <Icon name="chevron" size={18} />
               </button>
             ))}
           </div>
-          <button
-            className="icon-btn more"
-            aria-label="看更多飲料"
-            onClick={() =>
-              strip.current?.scrollBy({ left: 480, behavior: 'smooth' })
-            }
-          >
-            <Icon name="chevron" size={18} />
-          </button>
         </section>
       </div>
 

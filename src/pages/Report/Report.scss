@@ -27,9 +27,13 @@
     align-items: center;
     gap: 16px;
     padding: 28px 28px 20px;
-    background-image:
-      repeating-linear-gradient(30deg, var(--grid) 0 1px, transparent 1px 30px),
-      repeating-linear-gradient(-30deg, var(--grid) 0 1px, transparent 1px 30px);
+    overflow: hidden; // 插圖的地板延伸到 SVG 外，在這裡裁掉
+
+    // 文字疊在插圖的地板上面
+    > div {
+      position: relative;
+      z-index: 1;
+    }
 
     h1 {
       margin: 6px 0 4px;
@@ -69,6 +73,7 @@
     .hero-art {
       width: 180px;
       height: 260px;
+      overflow: visible;
     }
   }
 

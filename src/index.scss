@@ -7,7 +7,6 @@
   --muted: #8a8070;
   --line: #ddd2bf;
   --line-strong: #c7b89e;
-  --grid: rgba(31, 43, 71, 0.07);
   --accent: #2fb5a5;
   --accent-soft: #d8f0eb;
   --radius: 14px;
@@ -30,11 +29,19 @@ body {
     'Microsoft JhengHei',
     sans-serif;
   background-color: var(--paper);
-  // 淡淡的方格紙
+  // 和紙紋理 + 散落的茶葉線稿 + 左上角一點光
   background-image:
-    linear-gradient(var(--grid) 1px, transparent 1px),
-    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
-  background-size: 40px 40px;
+    url('./assets/washi.svg'), url('./assets/tea-leaves.svg'),
+    radial-gradient(
+      ellipse at 15% 0%,
+      rgba(255, 252, 244, 0.7),
+      transparent 55%
+    );
+  background-size:
+    260px 260px,
+    360px 360px,
+    100% 100%;
+  background-attachment: fixed;
   -webkit-font-smoothing: antialiased;
 }
 

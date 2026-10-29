@@ -1,5 +1,11 @@
-import { useEffect, useState } from 'react'
-import { Link, NavLink, Outlet, ScrollRestoration } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import {
+  Link,
+  NavLink,
+  Outlet,
+  ScrollRestoration,
+  useLocation,
+} from 'react-router-dom'
 import './App.scss'
 import Icon, { type IconName } from '@/components/Icon'
 import { SHOP_NAME, STATUS } from '@/data/menu'
@@ -59,9 +65,50 @@ function LatestOrder() {
   )
 }
 
+/** 大標題捲出畫面後，頂部改顯示的精簡列（只有手機與矮螢幕會捲動） */
+function MiniBar({ show }: { show: boolean }) {
+  const [orders] = useOrders()
+  const latest = orders[0]
+  return (
+    <div className={`minibar ${show ? 'show' : ''}`}>
+      <Link to="/" className="mini-logo">
+        <span className="mark">
+          <Icon name="cup" size={18} />
+        </span>
+        <b>{SHOP_NAME}</b>
+      </Link>
+      {latest && (
+        <Link to="/orders" className="mini-order">
+          <span className="mono">#{latest.no}</span>
+          <span className={`badge s${latest.status}`}>
+            {STATUS[latest.status]}
+          </span>
+        </Link>
+      )}
+    </div>
+  )
+}
+
 export default function App() {
   const [cart] = useCart()
   const count = cartCount(cart)
+  const masthead = useRef<HTMLElement>(null)
+  const main = useRef<HTMLElement>(null)
+  const [compact, setCompact] = useState(false)
+  const { pathname } = useLocation()
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(([entry]) =>
+      setCompact(!entry.isIntersecting),
+    )
+    if (masthead.current) observer.observe(masthead.current)
+    return () => observer.disconnect()
+  }, [])
+
+  // 電腦版捲動的是 main 不是整頁，ScrollRestoration 管不到，換頁時自己回到頂端
+  useEffect(() => {
+    main.current?.scrollTo({ top: 0 })
+  }, [pathname])
 
   return (
     <div className="shell">
@@ -81,8 +128,10 @@ export default function App() {
         </p>
       </aside>
 
+      <MiniBar show={compact} />
+
       <div className="content">
-        <header className="masthead">
+        <header className="masthead" ref={masthead}>
           <Link to="/" className="logo">
             <span className="mark">
               <Icon name="cup" size={30} />
@@ -97,7 +146,7 @@ export default function App() {
             <Clock />
           </div>
         </header>
-        <main>
+        <main ref={main}>
           <Outlet />
         </main>
       </div>

@@ -254,6 +254,7 @@ export default function Report() {
         <DrinkArt
           drink={MENU.find((d) => d.id === 'boba-milk-tea') ?? MENU[0]}
           toppings={['布丁']}
+          floor
           className="hero-art"
         />
       </header>

@@ -1,3 +1,5 @@
+@use './styles/media' as *;
+
 .shell {
   display: grid;
   grid-template-columns: 84px minmax(0, 1fr);
@@ -254,5 +256,104 @@ main {
 
   main {
     padding: 8px 16px 110px;
+  }
+}
+
+// 精簡標題列：大標題捲出畫面後從上方滑入，下緣用漸層與模糊淡出，和底下內容分層
+.minibar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 84px;
+  z-index: 18;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 20px 26px;
+  background: linear-gradient(
+    to bottom,
+    var(--paper) 0%,
+    rgba(243, 236, 224, 0.92) 55%,
+    rgba(243, 236, 224, 0) 100%
+  );
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  mask-image: linear-gradient(to bottom, #000 60%, transparent);
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(-100%);
+  transition:
+    transform 0.25s,
+    opacity 0.25s,
+    visibility 0.25s;
+
+  &.show {
+    visibility: visible;
+    opacity: 1;
+    transform: none;
+  }
+
+  a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .mark {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    color: var(--paper);
+    background: var(--ink);
+    border-radius: 50%;
+  }
+
+  b {
+    font: 700 1.15rem var(--font-display);
+    letter-spacing: 0.28em;
+  }
+
+  .mini-order {
+    gap: 8px;
+    font-size: 0.85rem;
+  }
+
+  @media (max-width: 900px) {
+    left: 0;
+    padding: 8px 16px 22px;
+  }
+
+  @media #{$desktop-app} {
+    display: none;
+  }
+}
+
+@media #{$desktop-app} {
+  .shell {
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  .content {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+  }
+
+  .masthead {
+    flex: none;
+  }
+
+  // 只有內容區捲動；上緣淡出，捲上去的內容不會硬生生切在標題下
+  main {
+    flex: 1;
+    min-height: 0;
+    padding-bottom: 24px;
+    overflow-y: auto;
+    mask-image: linear-gradient(to bottom, transparent 0, #000 18px);
   }
 }
