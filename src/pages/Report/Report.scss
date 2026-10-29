@@ -17,7 +17,8 @@
     font-size: 1.05rem;
   }
 
-  a {
+  // 只套用內文連結，「開始體驗系統」這類按鈕保留自己的顏色
+  a:not([class]) {
     color: var(--ink);
     text-decoration-color: var(--accent);
     text-underline-offset: 3px;
@@ -142,7 +143,9 @@
       border-radius: 10px;
     }
     span {
-      margin-right: 6px;
+      margin-right: 8px;
+      color: var(--accent);
+      font-weight: 600;
     }
     p {
       margin: 4px 0 0;
@@ -154,8 +157,27 @@
   .scroll {
     overflow-x: auto;
   }
+  // 通過：跟選項一樣的青綠色指示燈
+  .pass,
+  .unit li {
+    &::before {
+      display: inline-block;
+      width: 9px;
+      height: 9px;
+      margin-right: 8px;
+      vertical-align: 1px;
+      content: '';
+      background: var(--accent);
+      border: 1.5px solid var(--ink);
+      border-radius: 50%;
+      box-shadow:
+        inset 0 0 0 1.5px var(--card),
+        0 0 5px rgba(47, 181, 165, 0.55);
+    }
+  }
+
   .pass {
-    color: var(--ok);
+    font-weight: 600;
     white-space: nowrap;
   }
 
@@ -163,6 +185,10 @@
     padding-left: 0;
     list-style: none;
     font-size: 0.9rem;
+
+    li + li {
+      margin-top: 2px;
+    }
   }
 
   .values {

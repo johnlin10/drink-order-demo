@@ -369,12 +369,17 @@ main {
     flex: none;
   }
 
-  // 只有內容區捲動；上緣淡出，捲上去的內容不會硬生生切在標題下
+  // 只有內容區捲動；捲下去之後上緣才淡出，捲上去的內容不會硬生生切在標題下
   main {
+    --fade-top: 0px;
     flex: 1;
     min-height: 0;
     padding-bottom: 24px;
     overflow-y: auto;
-    mask-image: linear-gradient(to bottom, transparent 0, #000 18px);
+    mask-image: linear-gradient(to bottom, transparent 0, #000 var(--fade-top));
+
+    &.more-start {
+      --fade-top: 18px;
+    }
   }
 }

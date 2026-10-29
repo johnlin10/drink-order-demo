@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import './Order.scss'
 import DrinkArt from '@/components/DrinkArt'
 import Icon from '@/components/Icon'
 import { MENU } from '@/data/menu'
 import { useCart } from '@/data/store'
+import { fades, useScrollEdges } from '@/hooks/useScrollEdges'
 import type { Drink, Size } from '@/types'
 import {
   addToCart,
@@ -31,25 +32,10 @@ export default function Order() {
   })
   const [added, setAdded] = useState(false)
   const [cart, setCart] = useCart()
-  const strip = useRef<HTMLDivElement>(null)
-  // 菜單列左右還有沒有東西，決定哪一邊要淡出、要不要顯示箭頭
-  const [more, setMore] = useState({ left: false, right: false })
+  // 菜單列左右、右側面板上下還有沒有內容，決定哪一邊要淡出
+  const [strip, stripEdges] = useScrollEdges<HTMLDivElement>('x', category)
+  const [side, sideEdges] = useScrollEdges<HTMLDivElement>('y')
   const count = cartCount(cart)
-
-  const measure = useCallback(() => {
-    const el = strip.current
-    if (!el) return
-    setMore({
-      left: el.scrollLeft > 4,
-      right: el.scrollLeft + el.clientWidth < el.scrollWidth - 4,
-    })
-  }, [])
-
-  useEffect(() => {
-    measure()
-    window.addEventListener('resize', measure)
-    return () => window.removeEventListener('resize', measure)
-  }, [measure, category])
 
   const update = (patch: Partial<Spec>) => setSpec((s) => ({ ...s, ...patch }))
 
@@ -133,10 +119,8 @@ export default function Order() {
               ))}
             </div>
           </div>
-          <div
-            className={`scroller-wrap ${more.left ? 'more-left' : ''} ${more.right ? 'more-right' : ''}`}
-          >
-            <div className="scroller" ref={strip} onScroll={measure}>
+          <div className={`scroller-wrap ${fades(stripEdges)}`}>
+            <div className="scroller" ref={strip}>
               {MENU.filter(
                 (d) => category === '全部' || d.category === category,
               ).map((d) => (
@@ -157,15 +141,15 @@ export default function Order() {
                 </button>
               ))}
             </div>
-            {(['left', 'right'] as const).map((side) => (
+            {(['start', 'end'] as const).map((edge) => (
               <button
-                key={side}
-                className={`icon-btn arrow ${side}`}
-                aria-label={side === 'left' ? '往前看' : '看更多飲料'}
-                hidden={!more[side]}
+                key={edge}
+                className={`icon-btn arrow ${edge}`}
+                aria-label={edge === 'start' ? '往前看' : '看更多飲料'}
+                hidden={!stripEdges[edge]}
                 onClick={() =>
                   strip.current?.scrollBy({
-                    left: side === 'left' ? -480 : 480,
+                    left: edge === 'start' ? -480 : 480,
                     behavior: 'smooth',
                   })
                 }
@@ -177,7 +161,7 @@ export default function Order() {
         </section>
       </div>
 
-      <div className="order-side">
+      <div className={`order-side ${fades(sideEdges)}`} ref={side}>
         <Customizer
           drink={drink}
           no={no(drink)}

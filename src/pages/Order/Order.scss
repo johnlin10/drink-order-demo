@@ -136,15 +136,18 @@
   }
 
   .scroller-wrap {
+    // 淡出的寬度；有內容的那一側才真的淡出
+    --edge-left: 56px;
+    --edge-right: 72px;
     --fade-left: 0px;
     --fade-right: 0px;
     position: relative;
 
-    &.more-left {
-      --fade-left: 56px;
+    &.more-start {
+      --fade-left: var(--edge-left);
     }
-    &.more-right {
-      --fade-right: 72px;
+    &.more-end {
+      --fade-right: var(--edge-right);
     }
   }
 
@@ -155,7 +158,8 @@
     padding: 4px 4px 10px;
     overflow-x: auto;
     scroll-snap-type: x mandatory;
-    scroll-padding-inline: 4px;
+    // 卡片停在左側淡出區的右邊，停下來的那張不會被淡出蓋到
+    scroll-padding-left: var(--edge-left);
     scrollbar-width: none;
     mask-image: linear-gradient(
       to right,
@@ -217,14 +221,14 @@
     top: calc(50% - 25px);
     border-radius: 50%;
 
-    &.left {
+    &.start {
       left: 0;
 
       svg {
         transform: scaleX(-1);
       }
     }
-    &.right {
+    &.end {
       right: 0;
     }
     &[hidden] {
@@ -388,6 +392,10 @@
   .menu-strip .arrow {
     display: none;
   }
+  .menu-strip .scroller-wrap {
+    --edge-left: 28px;
+    --edge-right: 40px;
+  }
   .menu-strip .drink {
     flex-basis: 200px;
   }
@@ -445,12 +453,22 @@
     overflow-y: auto;
     overscroll-behavior: contain;
     scrollbar-width: thin;
+    // 捲到最頂時上緣不淡出、捲到底時下緣不淡出
+    --fade-top: 0px;
+    --fade-bottom: 0px;
     mask-image: linear-gradient(
       to bottom,
       transparent 0,
-      #000 14px,
-      #000 calc(100% - 28px),
+      #000 var(--fade-top),
+      #000 calc(100% - var(--fade-bottom)),
       transparent 100%
     );
+
+    &.more-start {
+      --fade-top: 16px;
+    }
+    &.more-end {
+      --fade-bottom: 28px;
+    }
   }
 }

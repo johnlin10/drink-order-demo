@@ -10,6 +10,7 @@ import './App.scss'
 import Icon, { type IconName } from '@/components/Icon'
 import { SHOP_NAME, STATUS } from '@/data/menu'
 import { useCart, useOrders } from '@/data/store'
+import { fades, useScrollEdges } from '@/hooks/useScrollEdges'
 import { cartCount } from '@/utils/order'
 
 const NAV: { to: string; label: string; icon: IconName }[] = [
@@ -93,9 +94,10 @@ export default function App() {
   const [cart] = useCart()
   const count = cartCount(cart)
   const masthead = useRef<HTMLElement>(null)
-  const main = useRef<HTMLElement>(null)
   const [compact, setCompact] = useState(false)
   const { pathname } = useLocation()
+  // 電腦版只有 main 在捲動：捲到最頂時上緣不淡出
+  const [main, mainEdges] = useScrollEdges<HTMLElement>('y', pathname)
 
   useEffect(() => {
     const observer = new IntersectionObserver(([entry]) =>
@@ -108,7 +110,7 @@ export default function App() {
   // 電腦版捲動的是 main 不是整頁，ScrollRestoration 管不到，換頁時自己回到頂端
   useEffect(() => {
     main.current?.scrollTo({ top: 0 })
-  }, [pathname])
+  }, [main, pathname])
 
   return (
     <div className="shell">
@@ -146,7 +148,7 @@ export default function App() {
             <Clock />
           </div>
         </header>
-        <main ref={main}>
+        <main ref={main} className={fades(mainEdges)}>
           <Outlet />
         </main>
       </div>

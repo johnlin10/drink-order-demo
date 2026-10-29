@@ -4,7 +4,6 @@ export interface Drink {
   id: string
   name: string
   category: string
-  emoji: string
   description: string
   price: Record<Size, number>
   /** 插圖用：茶湯顏色、漸層紋路（黑糖虎紋、拿鐵）、本身就有的料 */
