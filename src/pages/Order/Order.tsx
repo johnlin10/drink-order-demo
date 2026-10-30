@@ -75,6 +75,7 @@ export default function Order() {
             drink={drink}
             {...spec}
             callouts
+            interactive
             floor
             className="stage-art"
           />

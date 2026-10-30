@@ -1,6 +1,7 @@
 import { useId, type ReactNode } from 'react'
 import washi from '@/assets/washi.svg'
 import { SIZE_LABEL } from '@/data/menu'
+import { useSlosh } from '@/hooks/useSlosh'
 import type { Drink, Size } from '@/types'
 
 // 等角視角的飲料杯插圖：容量、冰塊、加料、熱飲都會反映在圖上
@@ -262,7 +263,13 @@ function Pudding() {
   const front = (dx: number) => ty + rt * K * Math.sqrt(1 - (dx / rt) ** 2)
   const shade = (k: number) => Math.sqrt(1 - k * k)
   return (
-    <g stroke={INK} strokeOpacity={0.55} strokeWidth={1.4}>
+    <g
+      stroke={INK}
+      strokeOpacity={0.55}
+      strokeWidth={1.4}
+      // 布丁 Q 彈：被推動時上半部晃得比底部多
+      style={physics('skewX(calc(var(--j, 0) * -0.9deg))', bx, by)}
+    >
       <path
         d={`M${bx - r} ${by}A${r} ${r * K} 0 0 0 ${bx + r} ${by}L${tx + rt} ${ty}A${rt} ${rt * K} 0 0 1 ${tx - rt} ${ty}Z`}
         fill="#f4cf6e"
@@ -305,6 +312,13 @@ function Pudding() {
     </g>
   )
 }
+
+// 物理效果用的 CSS 變形（變數由 useSlosh 寫在 svg 上，沒有互動時都是 0）
+const physics = (transform: string, ox: number, oy: number) => ({
+  transform,
+  transformOrigin: `${ox}px ${oy}px`,
+  transformBox: 'view-box' as const,
+})
 
 const textWidth = (s: string) =>
   [...s].reduce((w, c) => w + (c.charCodeAt(0) > 0xff ? 13 : 7.5), 0)
@@ -456,6 +470,7 @@ export default function DrinkArt({
   toppings = [],
   callouts = false,
   floor = false,
+  interactive = false,
   className,
 }: {
   drink: Drink
@@ -465,9 +480,12 @@ export default function DrinkArt({
   toppings?: string[]
   callouts?: boolean
   floor?: boolean
+  /** 滑鼠、手指推得動杯子 */
+  interactive?: boolean
   className?: string
 }) {
   const clip = useId()
+  const svg = useSlosh(interactive)
   const hot = ice === '熱飲'
   const height = size === 'L' ? 245 : 210
   const top = BOTTOM - height
@@ -478,7 +496,8 @@ export default function DrinkArt({
   const has = new Set([...(drink.inside ?? []), ...toppings])
 
   const body = `M${CX - R_TOP} ${top}L${CX - R_BOTTOM} ${BOTTOM}A${R_BOTTOM} ${R_BOTTOM * K} 0 0 0 ${CX + R_BOTTOM} ${BOTTOM}L${CX + R_TOP} ${top}A${R_TOP} ${R_TOP * K} 0 0 0 ${CX - R_TOP} ${top}Z`
-  const liquid = `M${CX - rl} ${liquidTop}L${CX - R_BOTTOM} ${BOTTOM}A${R_BOTTOM} ${R_BOTTOM * K} 0 0 0 ${CX + R_BOTTOM} ${BOTTOM}L${CX + rl} ${liquidTop}A${rl} ${rl * K} 0 0 0 ${CX - rl} ${liquidTop}Z`
+  // 茶湯往下多畫一截（反正被杯身裁掉），液面傾斜時杯底兩角才不會露出空隙
+  const liquid = `M${CX - rl} ${liquidTop}L${CX - R_BOTTOM} ${BOTTOM + 40}L${CX + R_BOTTOM} ${BOTTOM + 40}L${CX + rl} ${liquidTop}A${rl} ${rl * K} 0 0 0 ${CX - rl} ${liquidTop}Z`
 
   // 吸管：杯內那段被杯身裁切、畫在杯壁後面；杯外那段畫在杯蓋上面
   const sa = { x: CX + 8, y: BOTTOM - 20 }
@@ -509,41 +528,70 @@ export default function DrinkArt({
     )
 
   // 所有料依前後排序再畫，後面的先畫；吸管在正中間，夾在前後兩群之間
-  const items: { z: number; depth: number; el: ReactNode }[] = []
-  const add = (z: number, h: number, el: ReactNode) =>
-    items.push({ z, depth: z * 0.91 + h * 0.42, el })
+  // at：料的中心（滑過時用來判斷有沒有撥到）；
+  // k：多容易被推動、被茶湯帶動（沉底的布丁最重，冰塊最輕）；
+  // float：浮在液面上的料跟著液面一起傾斜
+  const items: {
+    z: number
+    depth: number
+    at: readonly [number, number]
+    el: ReactNode
+    k: number
+    float?: number
+  }[] = []
+  const add = (
+    [x, z, h]: [number, number, number],
+    center: number,
+    el: ReactNode,
+    k: number,
+    float?: number,
+  ) =>
+    items.push({
+      z,
+      depth: z * 0.91 + h * 0.42,
+      at: P(x, z, center),
+      el,
+      k,
+      float,
+    })
 
-  if (has.has('布丁')) add(PUDDING.z, PUDDING.h / 2, <Pudding />)
+  if (has.has('布丁'))
+    add([PUDDING.x, PUDDING.z, PUDDING.h / 2], PUDDING.h / 2, <Pudding />, 0.25)
   if (has.has('珍珠'))
     PEARLS.filter(
       (p) =>
         !has.has('布丁') ||
         p.h > PUDDING.h ||
         Math.hypot(p.x - PUDDING.x, p.z - PUDDING.z) > PUDDING.r + p.r / 2,
-    ).forEach((p) => add(p.z, p.h, <Pearl {...p} />))
+    ).forEach((p) =>
+      add([p.x, p.z, p.h], p.h + p.r, <Pearl {...p} />, 0.45 + p.h / 200),
+    )
   if (has.has('仙草'))
-    JELLIES.forEach((j, i) =>
+    JELLIES.forEach((j, i) => {
+      const h = floorAt(j.x, j.z) + j.dh
       add(
-        j.z,
-        floorAt(j.x, j.z) + j.dh,
+        [j.x, j.z, h],
+        h + j.t / 2,
         <Box
           {...j}
-          h={floorAt(j.x, j.z) + j.dh}
+          h={h}
           wobble={3.5}
           seed={50 + i}
           faces={JELLY}
           alpha={0.92}
         />,
-      ),
-    )
+        0.5,
+      )
+    })
   if (has.has('椰果'))
-    COCONUTS.forEach((c) =>
+    COCONUTS.forEach((c) => {
+      const h = floorAt(c.x, c.z) + c.dh
       add(
-        c.z,
-        floorAt(c.x, c.z) + c.dh,
+        [c.x, c.z, h],
+        h + 3,
         <Box
           {...c}
-          h={floorAt(c.x, c.z) + c.dh}
+          h={h}
           w={c.len}
           d={6.5}
           t={6.5}
@@ -551,8 +599,9 @@ export default function DrinkArt({
           faces={COCONUT}
           alpha={0.85}
         />,
-      ),
-    )
+        0.9,
+      )
+    })
   const surface = BOTTOM - liquidTop
   const ices = ICES.slice(0, ICE_COUNT[ice] ?? 0).map((c) => {
     const t = c.s * 0.88
@@ -560,8 +609,8 @@ export default function DrinkArt({
   })
   ices.forEach((c, i) =>
     add(
-      c.z,
-      c.h,
+      [c.x, c.z, c.h],
+      c.h + c.t / 2,
       <Box
         {...c}
         w={c.s}
@@ -571,14 +620,25 @@ export default function DrinkArt({
         faces={ICE}
         alpha={0.7}
       />,
+      1,
+      c.x,
     ),
   )
   items.sort((a, b) => a.depth - b.depth)
+  // 位移由 useSlosh 直接寫進 transform
   const layer = (keep: (z: number) => boolean) =>
     items
       .filter((it) => keep(it.z))
       .map((it, i) => (
-        <g key={i} opacity={alpha(it.z)}>
+        <g
+          key={i}
+          opacity={alpha(it.z)}
+          data-x={it.at[0]}
+          data-y={it.at[1]}
+          data-k={it.k}
+          data-float={it.float}
+          style={{ transformBox: 'view-box' }}
+        >
           {it.el}
         </g>
       ))
@@ -586,10 +646,13 @@ export default function DrinkArt({
     ices[0] &&
     P(ices[0].x, ices[0].z + ices[0].s / 2, ices[0].h + ices[0].t / 2)
   const mid = (liquidTop + BOTTOM) / 2
+  const tiltStyle = physics('skewY(calc(var(--tilt, 0) * 1rad))', CX, liquidTop)
 
   return (
     <svg
+      ref={svg}
       className={className}
+      style={interactive ? { touchAction: 'pan-y' } : undefined}
       viewBox={callouts ? '0 -12 520 432' : '128 -6 264 380'}
       role="img"
       aria-label={`${drink.name}：${SIZE_LABEL[size]}、${sugar}、${ice}`}
@@ -613,26 +676,84 @@ export default function DrinkArt({
         opacity={0.16}
       />
 
-      {/* 杯內 */}
-      <g clipPath={`url(#${clip})`}>
-        <path d={liquid} fill={drink.color} fillOpacity={clear ? 0.82 : 1} />
-        {/* 透明茶湯：兩側穿過的茶湯比較厚、顏色比較深，中間透光，還看得到杯底後半圈 */}
-        {clear && (
-          <>
-            {[
-              [-R_TOP, 0.42],
-              [R_TOP * 0.45, 0.55],
-            ].map(([x, w]) => (
-              <rect
-                key={x}
-                x={CX + x}
-                y={liquidTop}
-                width={R_TOP * w}
-                height={height}
-                fill={drink.color}
-                opacity={0.5}
+      {/* 整個杯子被推時微微晃動：往哪邊倒，就以那一側杯底圓弧接杯壁的轉角為支點，另一側翹起來 */}
+      <g
+        style={{
+          ...physics('rotate(calc(var(--lean, 0) * 1deg))', CX, BOTTOM),
+          transformOrigin: `calc(${CX}px + var(--pivot, 0) * ${R_BOTTOM}px) ${BOTTOM}px`,
+        }}
+      >
+        {/* 杯內 */}
+        <g clipPath={`url(#${clip})`}>
+          {/* 茶湯有慣性：杯子被推時液面往反方向傾斜 */}
+          <g style={tiltStyle}>
+            <path
+              d={liquid}
+              fill={drink.color}
+              fillOpacity={clear ? 0.82 : 1}
+            />
+            {/* 透明茶湯：兩側穿過的茶湯比較厚、顏色比較深，中間透光，還看得到杯底後半圈 */}
+            {clear && (
+              <>
+                {[
+                  [-R_TOP, 0.42],
+                  [R_TOP * 0.45, 0.55],
+                ].map(([x, w]) => (
+                  <rect
+                    key={x}
+                    x={CX + x}
+                    y={liquidTop}
+                    width={R_TOP * w}
+                    height={height}
+                    fill={drink.color}
+                    opacity={0.5}
+                  />
+                ))}
+                <path
+                  d={`M${CX - 30} ${liquidTop}L${CX - 22} ${BOTTOM}L${CX + 4} ${BOTTOM}L${CX - 2} ${liquidTop}Z`}
+                  fill="#fff"
+                  opacity={0.3}
+                />
+              </>
+            )}
+            {drink.swirl &&
+              [-50, -16, 18, 50].map((dx) => (
+                <path
+                  key={dx}
+                  d={`M${CX + dx} ${liquidTop + 6}c10 30 -14 60 4 100s-6 60 8 100`}
+                  fill="none"
+                  stroke={drink.swirl}
+                  strokeWidth={7}
+                  strokeLinecap="round"
+                  opacity={0.55}
+                />
+              ))}
+            {/* 液面：比杯身亮一階，邊緣一圈液面線 */}
+            <ellipse
+              cx={CX}
+              cy={liquidTop}
+              rx={rl}
+              ry={rl * K}
+              fill="#fff"
+              fillOpacity={0.22}
+              stroke={INK}
+              strokeOpacity={0.3}
+              strokeWidth={1.5}
+            />
+            {[-36, -22, 30].map((dx, i) => (
+              <circle
+                key={dx}
+                cx={CX + dx}
+                cy={liquidTop + [25, 29, 26][i]}
+                r={i === 1 ? 2 : 3}
+                fill="#fff"
+                fillOpacity={0.35}
+                stroke="#fff"
+                strokeOpacity={0.8}
               />
             ))}
+          </g>
+          {clear && (
             <path
               d={`M${CX - R_BOTTOM} ${BOTTOM}A${R_BOTTOM} ${R_BOTTOM * K} 0 0 1 ${CX + R_BOTTOM} ${BOTTOM}`}
               fill="none"
@@ -640,306 +761,276 @@ export default function DrinkArt({
               strokeOpacity={0.35}
               strokeWidth={1.5}
             />
+          )}
+          {layer((z) => z < 0)}
+          {!hot && (
+            <g opacity={clear ? 0.95 : 0.8}>
+              <path
+                d={`M${sa.x} ${sa.y}L${sp.x} ${sp.y}`}
+                stroke={INK}
+                strokeWidth={17}
+              />
+              <path
+                d={`M${sa.x} ${sa.y}L${sp.x} ${sp.y}`}
+                stroke="var(--accent)"
+                strokeWidth={13}
+              />
+              <path
+                d={`M${sa.x + 4} ${sa.y}L${sp.x + 4} ${sp.y}`}
+                stroke="#1f8a7e"
+                strokeWidth={5}
+              />
+            </g>
+          )}
+          {layer((z) => z >= 0)}
+          {/* 透明茶湯：泡在裡面的料都染上一層茶色 */}
+          {clear && (
             <path
-              d={`M${CX - 30} ${liquidTop}L${CX - 22} ${BOTTOM}L${CX + 4} ${BOTTOM}L${CX - 2} ${liquidTop}Z`}
-              fill="#fff"
-              opacity={0.3}
+              d={liquid}
+              fill={drink.color}
+              opacity={0.2}
+              style={tiltStyle}
             />
-          </>
-        )}
-        {drink.swirl &&
-          [-50, -16, 18, 50].map((dx) => (
-            <path
-              key={dx}
-              d={`M${CX + dx} ${liquidTop + 6}c10 30 -14 60 4 100s-6 60 8 100`}
-              fill="none"
-              stroke={drink.swirl}
-              strokeWidth={7}
-              strokeLinecap="round"
-              opacity={0.55}
-            />
-          ))}
-        {/* 液面：比杯身亮一階，邊緣一圈液面線 */}
+          )}
+          {/* 杯壁的明暗與反光 */}
+          <rect
+            x={CX - R_TOP}
+            y={top - 40}
+            width={R_TOP * 0.55}
+            height={height + 80}
+            fill="#fff"
+            opacity={0.22}
+          />
+          <rect
+            x={CX + R_TOP * 0.35}
+            y={top - 40}
+            width={R_TOP}
+            height={height + 80}
+            fill={INK}
+            opacity={clear ? 0.04 : 0.1}
+          />
+          <rect
+            x={CX + R_TOP * 0.72}
+            y={top - 40}
+            width={R_TOP}
+            height={height + 80}
+            fill={INK}
+            opacity={clear ? 0.04 : 0.08}
+          />
+          <path
+            d={`M${CX - R_TOP + 16} ${top + 16}L${CX - R_BOTTOM + 12} ${BOTTOM - 6}`}
+            stroke="#fff"
+            strokeWidth={7}
+            strokeLinecap="round"
+            opacity={0.6}
+          />
+          <path
+            d={`M${CX - R_TOP + 30} ${top + 50}L${CX - R_BOTTOM + 23} ${BOTTOM - 60}`}
+            stroke="#fff"
+            strokeWidth={2.5}
+            strokeLinecap="round"
+            opacity={0.5}
+          />
+          {/* 背光那側杯壁的反光 */}
+          <path
+            d={`M${CX + R_TOP - 7} ${top + 24}L${CX + R_BOTTOM - 5} ${BOTTOM - 10}`}
+            stroke="#fff"
+            strokeWidth={2.5}
+            strokeLinecap="round"
+            opacity={0.35}
+          />
+          {/* 杯蓋邊緣壓在杯身上的影子 */}
+          <ellipse
+            cx={CX}
+            cy={top + 13}
+            rx={R_TOP}
+            ry={R_TOP * K}
+            fill={INK}
+            opacity={0.12}
+          />
+          {/* 加厚的杯底與兩圈壓紋 */}
+          <path
+            d={`${arc(BOTTOM - 12)}L${CX + R_TOP} ${BOTTOM + 60}L${CX - R_TOP} ${BOTTOM + 60}Z`}
+            fill="#fff"
+            opacity={0.2}
+          />
+          <path
+            d={`${arc(BOTTOM - 12)}${arc(BOTTOM - 19)}`}
+            fill="none"
+            stroke={INK}
+            strokeOpacity={0.3}
+            strokeWidth={1.5}
+          />
+          {!hot &&
+            DROPS_AT.filter(([, y]) => BOTTOM + y > liquidTop + 30).map(
+              ([x, y]) => (
+                <g key={`${x}${y}`}>
+                  <ellipse
+                    cx={CX + x}
+                    cy={BOTTOM + y}
+                    rx={2.6}
+                    ry={3.4}
+                    fill="#fff"
+                    fillOpacity={0.35}
+                    stroke={INK}
+                    strokeOpacity={0.3}
+                  />
+                  <circle
+                    cx={CX + x - 0.8}
+                    cy={BOTTOM + y - 1.2}
+                    r={0.9}
+                    fill="#fff"
+                  />
+                </g>
+              ),
+            )}
+        </g>
+        <path
+          d={body}
+          fill="#fff"
+          fillOpacity={0.12}
+          stroke={INK}
+          strokeWidth={2.5}
+          strokeLinejoin="round"
+        />
+
+        {/* 封膜杯蓋：杯緣有厚度，封膜微微凹下去，印著店名 */}
+        <path
+          d={`M${CX - R_TOP - 3} ${top}L${CX - R_TOP - 3} ${top + 6}A${R_TOP + 3} ${(R_TOP + 3) * K} 0 0 0 ${CX + R_TOP + 3} ${top + 6}L${CX + R_TOP + 3} ${top}Z`}
+          fill="#e9dfcc"
+          stroke={INK}
+          strokeWidth={2.5}
+          strokeLinejoin="round"
+        />
+        <path
+          d={`M${CX + R_TOP * 0.35} ${top + (R_TOP + 3) * K * 0.94}A${R_TOP + 3} ${(R_TOP + 3) * K} 0 0 0 ${CX + R_TOP + 1.8} ${top + 1}L${CX + R_TOP + 1.8} ${top + 6}A${R_TOP + 3} ${(R_TOP + 3) * K} 0 0 1 ${CX + R_TOP * 0.35} ${top + 6 + (R_TOP + 3) * K * 0.94}Z`}
+          fill={INK}
+          opacity={0.12}
+        />
         <ellipse
           cx={CX}
-          cy={liquidTop}
-          rx={rl}
-          ry={rl * K}
-          fill="#fff"
-          fillOpacity={0.22}
+          cy={top}
+          rx={R_TOP + 3}
+          ry={(R_TOP + 3) * K}
+          fill="#fffaf0"
           stroke={INK}
-          strokeOpacity={0.3}
+          strokeWidth={2.5}
+        />
+        <ellipse
+          cx={CX}
+          cy={top + 1.5}
+          rx={R_TOP - 4}
+          ry={(R_TOP - 4) * K}
+          fill="#f5ecda"
+          stroke={INK}
+          strokeOpacity={0.35}
           strokeWidth={1.5}
         />
-        {[-36, -22, 30].map((dx, i) => (
-          <circle
-            key={dx}
-            cx={CX + dx}
-            cy={liquidTop + [25, 29, 26][i]}
-            r={i === 1 ? 2 : 3}
-            fill="#fff"
-            fillOpacity={0.35}
-            stroke="#fff"
-            strokeOpacity={0.8}
-          />
-        ))}
-        {layer((z) => z < 0)}
-        {!hot && (
-          <g opacity={clear ? 0.95 : 0.8}>
+        {/* 封膜靠杯緣那圈的凹痕影子 */}
+        <path
+          d={`M${CX - R_TOP + 4} ${top + 1.5}A${R_TOP - 4} ${(R_TOP - 4) * K} 0 0 1 ${CX + R_TOP - 4} ${top + 1.5}A${R_TOP - 4} ${(R_TOP - 4) * K - 4} 0 0 0 ${CX - R_TOP + 4} ${top + 1.5}Z`}
+          fill={INK}
+          opacity={0.08}
+        />
+        <ellipse
+          cx={CX}
+          cy={top + 1.5}
+          rx={R_TOP - 13}
+          ry={(R_TOP - 13) * K}
+          fill="none"
+          stroke="var(--accent)"
+          strokeWidth={1.5}
+          strokeDasharray="3 4"
+        />
+        {/* 店名印在封膜上：跟封膜一樣上下壓扁，看起來才是平躺在膜上 */}
+        <text
+          transform={`translate(${CX - 6} ${top + 1.5}) scale(1 ${K})`}
+          y={7}
+          fontSize={21}
+          fontWeight={700}
+          fill="var(--accent)"
+          letterSpacing={4}
+          textAnchor="middle"
+        >
+          茶語
+        </text>
+
+        {hot ? (
+          [-30, -6, 18].map((dx) => (
             <path
-              d={`M${sa.x} ${sa.y}L${sp.x} ${sp.y}`}
+              key={dx}
+              d={`M${CX + dx} ${top - 24}c-8 -10 8 -20 0 -30s8 -20 0 -30`}
+              fill="none"
+              stroke="var(--muted)"
+              strokeWidth={3}
+              strokeLinecap="round"
+              opacity={0.6}
+            />
+          ))
+        ) : (
+          <g>
+            {/* 吸管戳破封膜的皺褶 */}
+            <ellipse
+              cx={sp.x}
+              cy={sp.y + 2}
+              rx={13}
+              ry={5.5}
+              fill="#e6dac3"
+              stroke={INK}
+              strokeOpacity={0.45}
+              strokeWidth={1.2}
+            />
+            <path
+              d={`M${sp.x - 15} ${sp.y + 1}l-5 -1M${sp.x + 14} ${sp.y + 5}l5 2M${sp.x - 8} ${sp.y + 7}l-3 3M${sp.x + 4} ${sp.y - 3}l2 -3`}
+              stroke={INK}
+              strokeOpacity={0.4}
+              strokeWidth={1.2}
+              strokeLinecap="round"
+            />
+            {/* 吸管：亮面、本色、暗面三階 */}
+            <path
+              d={`M${sp.x} ${sp.y}L${sb.x} ${sb.y}`}
               stroke={INK}
               strokeWidth={17}
             />
             <path
-              d={`M${sa.x} ${sa.y}L${sp.x} ${sp.y}`}
+              d={`M${sp.x} ${sp.y}L${sb.x} ${sb.y}`}
               stroke="var(--accent)"
               strokeWidth={13}
             />
             <path
-              d={`M${sa.x + 4} ${sa.y}L${sp.x + 4} ${sp.y}`}
+              d={`M${sp.x + 4} ${sp.y + 1}L${sb.x + 4} ${sb.y + 1}`}
               stroke="#1f8a7e"
               strokeWidth={5}
             />
+            <path
+              d={`M${sp.x - 3} ${sp.y}L${sb.x - 3.5} ${sb.y + 2}`}
+              stroke="#fff"
+              strokeWidth={2.5}
+              strokeLinecap="round"
+              opacity={0.6}
+            />
+            <ellipse
+              cx={sb.x}
+              cy={sb.y}
+              rx={8.5}
+              ry={3.6}
+              fill="#5cc9bb"
+              stroke={INK}
+              strokeWidth={1.5}
+            />
+            <ellipse
+              cx={sb.x + 0.5}
+              cy={sb.y + 0.3}
+              rx={5}
+              ry={1.8}
+              fill="#0f4a44"
+            />
           </g>
         )}
-        {layer((z) => z >= 0)}
-        {/* 透明茶湯：泡在裡面的料都染上一層茶色 */}
-        {clear && <path d={liquid} fill={drink.color} opacity={0.2} />}
-        {/* 杯壁的明暗與反光 */}
-        <rect
-          x={CX - R_TOP}
-          y={top - 40}
-          width={R_TOP * 0.55}
-          height={height + 80}
-          fill="#fff"
-          opacity={0.22}
-        />
-        <rect
-          x={CX + R_TOP * 0.35}
-          y={top - 40}
-          width={R_TOP}
-          height={height + 80}
-          fill={INK}
-          opacity={clear ? 0.04 : 0.1}
-        />
-        <rect
-          x={CX + R_TOP * 0.72}
-          y={top - 40}
-          width={R_TOP}
-          height={height + 80}
-          fill={INK}
-          opacity={clear ? 0.04 : 0.08}
-        />
-        <path
-          d={`M${CX - R_TOP + 16} ${top + 16}L${CX - R_BOTTOM + 12} ${BOTTOM - 6}`}
-          stroke="#fff"
-          strokeWidth={7}
-          strokeLinecap="round"
-          opacity={0.6}
-        />
-        <path
-          d={`M${CX - R_TOP + 30} ${top + 50}L${CX - R_BOTTOM + 23} ${BOTTOM - 60}`}
-          stroke="#fff"
-          strokeWidth={2.5}
-          strokeLinecap="round"
-          opacity={0.5}
-        />
-        {/* 背光那側杯壁的反光 */}
-        <path
-          d={`M${CX + R_TOP - 7} ${top + 24}L${CX + R_BOTTOM - 5} ${BOTTOM - 10}`}
-          stroke="#fff"
-          strokeWidth={2.5}
-          strokeLinecap="round"
-          opacity={0.35}
-        />
-        {/* 杯蓋邊緣壓在杯身上的影子 */}
-        <ellipse
-          cx={CX}
-          cy={top + 13}
-          rx={R_TOP}
-          ry={R_TOP * K}
-          fill={INK}
-          opacity={0.12}
-        />
-        {/* 加厚的杯底與兩圈壓紋 */}
-        <path
-          d={`${arc(BOTTOM - 12)}L${CX + R_TOP} ${BOTTOM + 60}L${CX - R_TOP} ${BOTTOM + 60}Z`}
-          fill="#fff"
-          opacity={0.2}
-        />
-        <path
-          d={`${arc(BOTTOM - 12)}${arc(BOTTOM - 19)}`}
-          fill="none"
-          stroke={INK}
-          strokeOpacity={0.3}
-          strokeWidth={1.5}
-        />
-        {!hot &&
-          DROPS_AT.filter(([, y]) => BOTTOM + y > liquidTop + 30).map(
-            ([x, y]) => (
-              <g key={`${x}${y}`}>
-                <ellipse
-                  cx={CX + x}
-                  cy={BOTTOM + y}
-                  rx={2.6}
-                  ry={3.4}
-                  fill="#fff"
-                  fillOpacity={0.35}
-                  stroke={INK}
-                  strokeOpacity={0.3}
-                />
-                <circle
-                  cx={CX + x - 0.8}
-                  cy={BOTTOM + y - 1.2}
-                  r={0.9}
-                  fill="#fff"
-                />
-              </g>
-            ),
-          )}
+        {/* 杯身的範圍：useSlosh 用它判斷游標有沒有碰到杯子 */}
+        {interactive && <path data-hit d={body} fill="none" />}
       </g>
-      <path
-        d={body}
-        fill="#fff"
-        fillOpacity={0.12}
-        stroke={INK}
-        strokeWidth={2.5}
-        strokeLinejoin="round"
-      />
-
-      {/* 封膜杯蓋：杯緣有厚度，封膜微微凹下去，印著店名 */}
-      <path
-        d={`M${CX - R_TOP - 3} ${top}L${CX - R_TOP - 3} ${top + 6}A${R_TOP + 3} ${(R_TOP + 3) * K} 0 0 0 ${CX + R_TOP + 3} ${top + 6}L${CX + R_TOP + 3} ${top}Z`}
-        fill="#e9dfcc"
-        stroke={INK}
-        strokeWidth={2.5}
-        strokeLinejoin="round"
-      />
-      <path
-        d={`M${CX + R_TOP * 0.35} ${top + (R_TOP + 3) * K * 0.94}A${R_TOP + 3} ${(R_TOP + 3) * K} 0 0 0 ${CX + R_TOP + 1.8} ${top + 1}L${CX + R_TOP + 1.8} ${top + 6}A${R_TOP + 3} ${(R_TOP + 3) * K} 0 0 1 ${CX + R_TOP * 0.35} ${top + 6 + (R_TOP + 3) * K * 0.94}Z`}
-        fill={INK}
-        opacity={0.12}
-      />
-      <ellipse
-        cx={CX}
-        cy={top}
-        rx={R_TOP + 3}
-        ry={(R_TOP + 3) * K}
-        fill="#fffaf0"
-        stroke={INK}
-        strokeWidth={2.5}
-      />
-      <ellipse
-        cx={CX}
-        cy={top + 1.5}
-        rx={R_TOP - 4}
-        ry={(R_TOP - 4) * K}
-        fill="#f5ecda"
-        stroke={INK}
-        strokeOpacity={0.35}
-        strokeWidth={1.5}
-      />
-      {/* 封膜靠杯緣那圈的凹痕影子 */}
-      <path
-        d={`M${CX - R_TOP + 4} ${top + 1.5}A${R_TOP - 4} ${(R_TOP - 4) * K} 0 0 1 ${CX + R_TOP - 4} ${top + 1.5}A${R_TOP - 4} ${(R_TOP - 4) * K - 4} 0 0 0 ${CX - R_TOP + 4} ${top + 1.5}Z`}
-        fill={INK}
-        opacity={0.08}
-      />
-      <ellipse
-        cx={CX}
-        cy={top + 1.5}
-        rx={R_TOP - 13}
-        ry={(R_TOP - 13) * K}
-        fill="none"
-        stroke="var(--accent)"
-        strokeWidth={1.5}
-        strokeDasharray="3 4"
-      />
-      <text
-        x={CX - 22}
-        y={top + 7}
-        fontSize={14}
-        fontWeight={700}
-        fill="var(--accent)"
-        letterSpacing={2}
-      >
-        茶語
-      </text>
-
-      {hot ? (
-        [-30, -6, 18].map((dx) => (
-          <path
-            key={dx}
-            d={`M${CX + dx} ${top - 24}c-8 -10 8 -20 0 -30s8 -20 0 -30`}
-            fill="none"
-            stroke="var(--muted)"
-            strokeWidth={3}
-            strokeLinecap="round"
-            opacity={0.6}
-          />
-        ))
-      ) : (
-        <g>
-          {/* 吸管戳破封膜的皺褶 */}
-          <ellipse
-            cx={sp.x}
-            cy={sp.y + 2}
-            rx={13}
-            ry={5.5}
-            fill="#e6dac3"
-            stroke={INK}
-            strokeOpacity={0.45}
-            strokeWidth={1.2}
-          />
-          <path
-            d={`M${sp.x - 15} ${sp.y + 1}l-5 -1M${sp.x + 14} ${sp.y + 5}l5 2M${sp.x - 8} ${sp.y + 7}l-3 3M${sp.x + 4} ${sp.y - 3}l2 -3`}
-            stroke={INK}
-            strokeOpacity={0.4}
-            strokeWidth={1.2}
-            strokeLinecap="round"
-          />
-          {/* 吸管：亮面、本色、暗面三階 */}
-          <path
-            d={`M${sp.x} ${sp.y}L${sb.x} ${sb.y}`}
-            stroke={INK}
-            strokeWidth={17}
-          />
-          <path
-            d={`M${sp.x} ${sp.y}L${sb.x} ${sb.y}`}
-            stroke="var(--accent)"
-            strokeWidth={13}
-          />
-          <path
-            d={`M${sp.x + 4} ${sp.y + 1}L${sb.x + 4} ${sb.y + 1}`}
-            stroke="#1f8a7e"
-            strokeWidth={5}
-          />
-          <path
-            d={`M${sp.x - 3} ${sp.y}L${sb.x - 3.5} ${sb.y + 2}`}
-            stroke="#fff"
-            strokeWidth={2.5}
-            strokeLinecap="round"
-            opacity={0.6}
-          />
-          <ellipse
-            cx={sb.x}
-            cy={sb.y}
-            rx={8.5}
-            ry={3.6}
-            fill="#5cc9bb"
-            stroke={INK}
-            strokeWidth={1.5}
-          />
-          <ellipse
-            cx={sb.x + 0.5}
-            cy={sb.y + 0.3}
-            rx={5}
-            ry={1.8}
-            fill="#0f4a44"
-          />
-        </g>
-      )}
 
       {callouts && (
         <>
